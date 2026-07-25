@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" fill="none">
+  <!-- Exact replication of reference Image 4 (Coat of arms shield + solid circular key) -->
+  <!-- Outer shield: gentle center top arc, rounded shoulders, straight upper sides tapering smoothly to rounded tip -->
+  <path d="M 50 8 C 66 10, 79 16, 82 28 C 84 46, 82 68, 73 85 C 64 100, 56 108, 50 112 C 44 108, 36 100, 27 85 C 18 68, 16 46, 18 28 C 21 16, 34 10, 50 8 Z" fill="#050408" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- The Key: identical to Image 4 with solid white circular head, pointed stem, vertical center slit, and two right teeth -->
+  <!-- Solid White Circular Bow (Head of Key) -->
+  <circle cx="50" cy="40" r="17" fill="#ffffff"/>
+
+  <!-- Key Shaft: clean vertical stem descending to an angled point at bottom center -->
+  <path d="M 45.5 50 V 82 L 50 89 L 54.5 82 V 50 Z" fill="#ffffff" stroke-linejoin="round"/>
+
+  <!-- Center vertical slit in key stem -->
+  <line x1="50" y1="57" x2="50" y2="78" stroke="#050408" stroke-width="2.2" stroke-linecap="round"/>
+
+  <!-- Two crisp horizontal teeth on the right side -->
+  <!-- Upper Tooth -->
+  <rect x="54" y="64.5" width="8.5" height="5.2" rx="1.1" fill="#ffffff"/>
+
+  <!-- Lower Tooth -->
+  <rect x="54" y="73.5" width="10.5" height="5.2" rx="1.1" fill="#ffffff"/>
+</svg>
