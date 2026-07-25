@@ -1,16 +1,52 @@
-# React + Vite
+# BYOK - Bring Your Own Key
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Welcome to the **BYOK** project repository! This is a modern, responsive landing page and application built with React and Vite. BYOK allows users to securely use their own API keys across different providers.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Modern UI**: A premium user interface featuring dynamic animations, interactive components like StarBorders, DotFields, and a responsive PillNav.
+- **Provider Integrations**: Seamlessly integrate with various service providers using your own keys.
+- **Fast Performance**: Built with Vite and React for ultra-fast load times and optimal developer experience.
+- **Fully Responsive**: Designed to look great on desktop, tablet, and mobile devices.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Framework**: [React](https://reactjs.org/)
+- **Bundler**: [Vite](https://vitejs.dev/)
+- **Styling**: Vanilla CSS with customized design tokens
 
-## Expanding the Oxlint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+### Prerequisites
+
+- Node.js (v18 or higher)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/darshohri/BYOK.git
+   cd BYOK
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+## Project Structure
+
+The codebase is organized as follows:
+- `/src/components`: Contains all UI components (Hero, Features, FAQ, etc.)
+- `/src/components/ui`: Highly reusable and styled UI components like animations and borders.
+- `/src/assets`: Static assets, images, and logos.
+
+## License
+
+MIT License. See the `LICENSE` file for details.
