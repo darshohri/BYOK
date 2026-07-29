@@ -207,7 +207,7 @@ const LegalModal = ({ isOpen, type, onClose }) => {
                 cursor: 'pointer'
               }}
             >
-              Dismiss Policy
+              Dismiss
             </button>
           </div>
         </motion.div>

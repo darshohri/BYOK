@@ -1,0 +1,52 @@
+/* GlowCard / SpotlightCard — padding-as-border approach.
+ * The outer .glow-card has the gradient background.
+ * The inner .glow-card-inner covers everything except the padding gap,
+ * which creates the visible glowing "border line" effect.
+ */
+
+.glow-card {
+  position: relative;
+  border-radius: 16px;
+  padding: 1.5px; /* THIS is the visible border thickness */
+  box-shadow: 0 1rem 2rem -1rem rgba(0, 0, 0, 0.6);
+  transition: box-shadow 0.3s ease;
+
+  /* Ambient dim border — always visible even without cursor */
+  background: radial-gradient(
+      var(--spotlight-size, 350px) var(--spotlight-size, 350px)
+        at var(--glow-x, 50%) var(--glow-y, 50%),
+      hsl(var(--hue, 210) 100% 65% / var(--glow-opacity, 0)),
+      transparent 100%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+}
+
+.glow-card-inner {
+  position: relative;
+  background: #0a0812;
+  border-radius: 14.5px; /* outer radius minus padding */
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Soft outer bloom behind the border */
+.glow-card::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 22px;
+  background: radial-gradient(
+    var(--spotlight-size, 350px) var(--spotlight-size, 350px)
+      at var(--glow-x, 50%) var(--glow-y, 50%),
+    hsl(var(--hue, 210) 100% 55% / var(--bloom-opacity, 0)),
+    transparent 100%
+  );
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(8px);
+}

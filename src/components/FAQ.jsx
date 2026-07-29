@@ -7,7 +7,7 @@ const FAQItem = ({ question, answer, isOpen, onClick, index }) => {
     <motion.div
       initial={{ opacity: 0, y: 35 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: false, amount: 0.2 }}
+      viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.6, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
       style={{
         borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
@@ -108,7 +108,7 @@ const FAQ = () => {
     },
     {
       q: 'Which language models and providers are supported?',
-      a: 'Our universal protocol supports Google Gemini (Gemini 1.5 Pro & Flash with 2M context), Groq LPU™ Engine (delivering over 300+ tokens/sec on Llama 3.1 and Mixtral), and the entire OpenRouter Ecosystem (giving you dynamic routing across Claude 3.5 Sonnet, DeepSeek-V3, Mistral Large, and 100+ top foundation models).'
+      a: 'Our universal protocol supports Google Gemini (Flash & Flash-Lite with 1M context), Groq LPU™ Engine (delivering over 300+ tokens/sec on Llama 3.1 and Mixtral), and the entire OpenRouter Ecosystem (giving you dynamic routing across Claude 3.5 Sonnet, DeepSeek-V3, Mistral Large, and 100+ top foundation models).'
     },
     {
       q: 'Is the BYOK developer studio free to use?',
@@ -126,7 +126,7 @@ const FAQ = () => {
         <motion.div
           initial={{ opacity: 0, y: 45 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false, amount: 0.3 }}
+          viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="section-header"
         >

@@ -74,7 +74,7 @@ const Features = () => {
         <motion.div 
           initial={{ opacity: 0, y: 50, filter: 'blur(8px)' }}
           whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          viewport={{ once: false, amount: 0.3 }}
+          viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="section-header"
         >
@@ -96,7 +96,7 @@ const Features = () => {
               key={f.title}
               initial={{ opacity: 0, y: 70, scale: 0.88, rotateX: 10 }}
               whileInView={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
-              viewport={{ once: false, amount: 0.15 }}
+              viewport={{ once: true, amount: 0.15 }}
               transition={{ 
                 duration: 0.75, 
                 delay: i * 0.12, 

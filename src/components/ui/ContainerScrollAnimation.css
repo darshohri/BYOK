@@ -1,0 +1,63 @@
+/* ContainerScroll Animation Styles */
+
+.container-scroll-wrapper {
+  height: 60rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 8px;
+}
+
+.container-scroll-perspective {
+  padding: 40px 0;
+  width: 100%;
+  position: relative;
+  perspective: 1000px;
+}
+
+.container-scroll-header {
+  max-width: 72rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.container-scroll-card {
+  max-width: 72rem;
+  margin: -48px auto 0;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0;
+  background: #0a0812;
+  border-radius: 20px;
+  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8), 0 0 40px rgba(139, 92, 246, 0.15);
+}
+
+.container-scroll-card-inner {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #09070e;
+}
+
+/* Medium screens and up */
+@media (min-width: 768px) {
+  .container-scroll-wrapper {
+    height: 80rem;
+    padding: 80px;
+  }
+
+  .container-scroll-perspective {
+    padding: 160px 0;
+  }
+
+  .container-scroll-card {
+    padding: 0;
+    min-height: 520px;
+  }
+
+  .container-scroll-card-inner {
+    border-radius: 20px;
+  }
+}

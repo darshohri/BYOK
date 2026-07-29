@@ -10,10 +10,6 @@ const Navbar = () => {
     { label: 'FAQs', href: '#faq' }
   ];
 
-  const actionItems = [
-    { label: 'Log In', href: '#cta' },
-    { label: 'Get Started', href: '#cta' }
-  ];
 
   return (
     <header style={{
@@ -59,13 +55,17 @@ const Navbar = () => {
         {/* Action Buttons */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <PillNav
-            items={actionItems}
-            baseColor="#a855f7"
-            pillColor="#1c162e"
+            items={[
+              { label: 'Sign Up', href: '#signup' },
+              { label: 'Log In', href: '#login' }
+            ]}
+            baseColor="#8b5cf6"
+            pillColor="#13101d"
             hoveredPillTextColor="#ffffff"
-            pillTextColor="#ffffff"
+            pillTextColor="#a1a1aa"
+            initialLoadAnimation={true}
+            hideMobileMenu={true}
             className="action-pill-nav"
-            initialLoadAnimation={false}
           />
         </div>
       </div>

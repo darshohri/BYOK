@@ -1,55 +1,50 @@
 import './StarBorder.css';
 
 const StarBorder = ({
-  as: Component = 'div',
+  as: Component = 'button',
   className = '',
-  color = 'cyan',
-  speed = '5s',
-  thickness = 2,
+  color = 'white',
+  speed = '6s',
+  thickness = 1,
   children,
   ...rest
 }) => {
+  // Parse speed string to a number in seconds for the stagger delay
+  const speedNum = parseFloat(speed) || 6;
+  const halfSpeed = `${speedNum / 2}s`;
+
   return (
     <Component
       className={`star-border-container ${className}`}
       style={{
-        padding: `${thickness}px`, /* Padding on all 4 sides perfectly exposes the 4 moving lines */
+        '--star-color': color,
+        padding: `${thickness}px 0`,
         ...rest.style
       }}
       {...rest}
     >
-      <div
-        className="border-gradient-top"
-        style={{
-          background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
-          animationDuration: speed,
-          height: `${thickness}px` /* Strictly locked to the padding height */
-        }}
-      ></div>
+      {/* Primary bottom dot */}
       <div
         className="border-gradient-bottom"
-        style={{
-          background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
-          animationDuration: speed,
-          height: `${thickness}px` /* Strictly locked to the padding height */
-        }}
+        style={{ animationDuration: speed }}
       ></div>
+      {/* Staggered bottom dot — starts halfway through, so one is always visible */}
       <div
-        className="border-gradient-left"
-        style={{
-          background: `linear-gradient(180deg, transparent, ${color}, transparent)`,
-          animationDuration: speed,
-          width: `${thickness}px` /* Strictly locked to the padding width */
-        }}
+        className="border-gradient-bottom"
+        style={{ animationDuration: speed, animationDelay: halfSpeed }}
       ></div>
+
+      {/* Primary top dot */}
       <div
-        className="border-gradient-right"
-        style={{
-          background: `linear-gradient(180deg, transparent, ${color}, transparent)`,
-          animationDuration: speed,
-          width: `${thickness}px` /* Strictly locked to the padding width */
-        }}
+        className="border-gradient-top"
+        style={{ animationDuration: speed }}
       ></div>
+      {/* Staggered top dot */}
+      <div
+        className="border-gradient-top"
+        style={{ animationDuration: speed, animationDelay: halfSpeed }}
+      ></div>
+
       <div className="inner-content">{children}</div>
     </Component>
   );

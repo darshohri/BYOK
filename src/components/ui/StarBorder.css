@@ -1,76 +1,78 @@
 .star-border-container {
   display: inline-block;
   position: relative;
-  border-radius: 34px; /* Curved to match the FinalCTA block */
+  border-radius: 20px;
   overflow: hidden;
-  isolation: isolate; /* Critical for z-index containment */
-}
-
-/* Horizontal Comets */
-.border-gradient-top {
-  position: absolute;
-  width: 100%;
-  top: 0;
-  left: 0;
-  animation: star-movement-horizontal linear infinite alternate;
-  z-index: 0;
 }
 
 .border-gradient-bottom {
   position: absolute;
-  width: 100%;
-  bottom: 0;
-  left: 0;
-  animation: star-movement-horizontal-reverse linear infinite alternate;
+  width: 200%;
+  height: 50%;
+  bottom: -11%;
+  right: -100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--star-color, white), transparent 10%);
+  animation: star-movement-bottom linear infinite;
+  will-change: transform, opacity;
   z-index: 0;
 }
 
-/* Vertical Comets */
-.border-gradient-left {
+.border-gradient-top {
   position: absolute;
-  height: 100%;
-  top: 0;
-  left: 0;
-  animation: star-movement-vertical linear infinite alternate;
-  z-index: 0;
-}
-
-.border-gradient-right {
-  position: absolute;
-  height: 100%;
-  top: 0;
-  right: 0;
-  animation: star-movement-vertical-reverse linear infinite alternate;
+  width: 200%;
+  height: 50%;
+  top: -11%;
+  left: -100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--star-color, white), transparent 10%);
+  animation: star-movement-top linear infinite;
+  will-change: transform, opacity;
   z-index: 0;
 }
 
 .inner-content {
   position: relative;
-  background: var(--bg-color, #050408);
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  z-index: 1; /* Forces the inner block ON TOP of the sliding comets, exposing them only in the 2px padding gap! */
-  box-sizing: border-box;
+  border: 1px solid #222;
+  background: #000;
+  color: white;
+  font-size: 16px;
+  text-align: center;
+  padding: 16px 26px;
+  border-radius: 20px;
+  z-index: 1;
 }
 
-/* Dead-simple translation animations. Physically impossible to render out-of-bounds */
-@keyframes star-movement-horizontal {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+@keyframes star-movement-bottom {
+  0% {
+    transform: translate(0%, 0%);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-75%, 0%);
+    opacity: 0;
+  }
 }
 
-@keyframes star-movement-horizontal-reverse {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
-}
-
-@keyframes star-movement-vertical {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
-}
-
-@keyframes star-movement-vertical-reverse {
-  0% { transform: translateY(100%); }
-  100% { transform: translateY(-100%); }
+@keyframes star-movement-top {
+  0% {
+    transform: translate(0%, 0%);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(75%, 0%);
+    opacity: 0;
+  }
 }

@@ -28,7 +28,7 @@ const Footer = ({ onOpenLegal }) => {
         <motion.div 
           initial={{ opacity: 0, y: 35 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false, amount: 0.2 }}
+          viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           style={{
             display: 'grid',
@@ -81,7 +81,7 @@ const Footer = ({ onOpenLegal }) => {
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
-          viewport={{ once: false, amount: 0.5 }}
+          viewport={{ once: true, amount: 0.5 }}
           transition={{ duration: 0.8, delay: 0.2 }}
           style={{
             borderTop: '1px solid rgba(255, 255, 255, 0.06)',
@@ -97,7 +97,7 @@ const Footer = ({ onOpenLegal }) => {
           <div>
             &copy; {new Date().getFullYear()} BYOK. All rights reserved. Built for sovereign developer speed & privacy.
           </div>
-          <div style={{ display: 'flex', gap: '24px' }}>
+          <div style={{ display: 'flex', gap: '24px', paddingRight: '70px' }}>
             <button
               onClick={() => onOpenLegal && onOpenLegal('privacy')}
               style={{ background: 'transparent', border: 'none', color: '#64748b', transition: 'color 0.2s', cursor: 'pointer', padding: 0, font: 'inherit' }}

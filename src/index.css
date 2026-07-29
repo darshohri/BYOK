@@ -229,3 +229,27 @@ button {
     background-position: 0% 50%;
   }
 }
+
+/* StarBorder overrides for FinalCTA */
+.final-cta-star.star-border-container {
+  display: block;
+  width: 100%;
+  border-radius: 32px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.8), 0 0 55px rgba(168, 85, 247, 0.25);
+}
+
+.final-cta-star .inner-content {
+  background: #090712;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 30px;
+  padding: 0;
+  font-size: inherit;
+  text-align: center;
+}
+
+.final-cta-star .border-gradient-bottom,
+.final-cta-star .border-gradient-top {
+  height: 200%;
+  opacity: 1;
+  background: radial-gradient(circle, var(--star-color, white), transparent 30%) !important;
+}
