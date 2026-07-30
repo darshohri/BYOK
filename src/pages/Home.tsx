@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import Navbar from './components/Navbar';
-import Hero from './components/Hero';
-import Providers from './components/Providers';
-import Features from './components/Features';
-import DashboardPreview from './components/DashboardPreview';
-import WhyBYOK from './components/WhyBYOK';
-import FAQ from './components/FAQ';
-import FinalCTA from './components/FinalCTA';
-import Footer from './components/Footer';
-import LegalModal from './components/LegalModal';
-import DotField from './components/ui/DotField';
-import ScrollToTop from './components/ScrollToTop';
+import Navbar from '../components/Navbar';
+import Hero from '../components/Hero';
+import Providers from '../components/Providers';
+import Features from '../components/Features';
+import DashboardPreview from '../components/DashboardPreview';
+import WhyBYOK from '../components/WhyBYOK';
+import FAQ from '../components/FAQ';
+import FinalCTA from '../components/FinalCTA';
+import Footer from '../components/Footer';
+import LegalModal from '../components/LegalModal';
+import DotField from '../components/ui/DotField';
+import ScrollToTop from '../components/ScrollToTop';
 
-function App() {
+export default function Home() {
   const [legalModalType, setLegalModalType] = useState(null);
 
   return (
@@ -54,7 +54,7 @@ function App() {
           <FAQ />
           <FinalCTA />
         </main>
-        <Footer onOpenLegal={(type) => setLegalModalType(type)} />
+        <Footer onOpenLegal={(type: any) => setLegalModalType(type)} />
       </div>
 
       {/* Interactive floating Move to Top arrow button */}
@@ -69,5 +69,3 @@ function App() {
     </div>
   );
 }
-
-export default App;

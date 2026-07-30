@@ -56,8 +56,8 @@ const Navbar = () => {
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <PillNav
             items={[
-              { label: 'Sign Up', href: '#signup' },
-              { label: 'Log In', href: '#login' }
+              { label: 'Sign Up', href: '/auth?mode=signup' },
+              { label: 'Log In', href: '/auth?mode=login' }
             ]}
             baseColor="#8b5cf6"
             pillColor="#13101d"
