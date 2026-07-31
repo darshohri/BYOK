@@ -185,6 +185,7 @@ button {
   margin-bottom: 16px;
   background: linear-gradient(180deg, #ffffff 0%, #94a3b8 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -197,6 +198,7 @@ button {
 .text-gradient-purple {
   background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 50%, #6366f1 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline;
 }

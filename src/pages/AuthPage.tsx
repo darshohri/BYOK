@@ -29,16 +29,15 @@ export default function AuthPage() {
 
     const timer2 = setTimeout(() => {
       setAnimState('byok');
-    }, 2500);
+    }, 2000);
 
     const timer3 = setTimeout(() => {
       setAnimState('form');
-    }, 4000);
+    }, 4500);
 
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
-      clearTimeout(timer3);
       clearTimeout(timer3);
     };
   }, []);
@@ -111,7 +110,7 @@ export default function AuthPage() {
                   key="byok"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -40, filter: 'blur(10px)' }}
+                  exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.5 }}
                   className="flex flex-col items-center justify-center text-center h-full"
                 >
@@ -218,10 +217,12 @@ export default function AuthPage() {
             <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/20 to-[#050408] z-10 pointer-events-none" />
             <div className="absolute inset-0 w-full h-full z-0">
               {(animState === 'byok' || animState === 'form') && (
-                <SplineScene 
-                  scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
-                  className="w-full h-full"
-                />
+                <React.Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="w-8 h-8 rounded-full border-4 border-purple-500 border-t-transparent animate-spin"></div></div>}>
+                  <SplineScene 
+                    scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
+                    className="w-full h-full"
+                  />
+                </React.Suspense>
               )}
             </div>
           </div>
