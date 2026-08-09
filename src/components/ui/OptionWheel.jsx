@@ -180,6 +180,7 @@ const OptionWheel = ({
     if (!el) return;
     const onWheel = e => {
       e.preventDefault();
+      e.stopPropagation();
       const cfg = cfgRef.current;
       const delta = e.deltaMode === 1 ? e.deltaY * 24 : e.deltaY;
       // Cap each event at one step so notchy mouse wheels move exactly one

@@ -1,8 +1,25 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShieldCheck, Lock, FileText, CheckCircle } from 'lucide-react';
+import { useLenis } from 'lenis/react';
 
 const LegalModal = ({ isOpen, type, onClose }) => {
+  const lenis = useLenis();
+
+  useEffect(() => {
+    if (isOpen && type) {
+      document.body.style.overflow = 'hidden';
+      lenis?.stop();
+    } else {
+      document.body.style.overflow = '';
+      lenis?.start();
+    }
+    return () => {
+      document.body.style.overflow = '';
+      lenis?.start();
+    };
+  }, [isOpen, type, lenis]);
+
   if (!isOpen || !type) return null;
 
   const contentMap = {
@@ -182,7 +199,7 @@ const LegalModal = ({ isOpen, type, onClose }) => {
           </div>
 
           {/* Modal Body */}
-          <div style={{ padding: '30px 28px', overflowY: 'auto', flex: 1 }}>
+          <div data-lenis-prevent="true" style={{ padding: '30px 28px', overflowY: 'auto', flex: 1 }}>
             {current.body}
           </div>
 

@@ -5,11 +5,11 @@ const Hero = () => {
   return (
     <section style={{
       position: 'relative',
-      minHeight: 'calc(88vh - 76px)',
+      minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '90px 0 120px 0',
+      padding: '0',
       background: 'transparent'
     }}>
       {/* Note: All bottom blending gradients and border seams have been excised completely so the dotfield is 100% continuous and seamless! */}
