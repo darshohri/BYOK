@@ -135,7 +135,7 @@ export default function Home() {
             textColor="#a1a1aa"
             activeColor="#ffffff"
             side="left"
-            fontSize={1.2}
+            fontSize={1.5}
             spacing={1.8}
             curve={1}
             tilt={6}
