@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
-import { LayoutDashboard, Users, Settings, Database, Server, Shield, Bell, Search, Terminal } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, Database, Server, Shield, Bell, Search, Terminal, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Workspace() {
@@ -75,6 +75,18 @@ export default function Workspace() {
                 </button>
               ))}
             </nav>
+            <div className="mt-2 pt-2 border-t border-white/5">
+              <button
+                onClick={() => {
+                  localStorage.removeItem('byok_has_account');
+                  navigate('/');
+                }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-400/70 hover:bg-red-500/10 hover:text-red-400 transition-all"
+              >
+                <LogOut size={18} />
+                <span className="font-medium text-sm">Log Out</span>
+              </button>
+            </div>
           </Card>
           
           <Card className="bg-gradient-to-b from-purple-900/20 to-transparent border-purple-500/20 p-6 rounded-2xl">

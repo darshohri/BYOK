@@ -57,7 +57,7 @@ const Navbar = () => {
           <PillNav
             items={[
               { label: 'Sign Up', href: '/auth?mode=signup' },
-              { label: 'Log In', href: '/auth?mode=login' }
+              { label: 'Log In', href: '/workspace' }
             ]}
             baseColor="#8b5cf6"
             pillColor="#13101d"

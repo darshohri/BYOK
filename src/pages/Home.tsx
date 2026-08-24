@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ReactLenis } from 'lenis/react';
 import OptionWheel from '../components/ui/OptionWheel';
 import Hero from '../components/Hero';
@@ -14,9 +15,14 @@ import DotField from '../components/ui/DotField';
 import ScrollToTop from '../components/ScrollToTop';
 
 const SECTION_IDS = ['top', 'providers', 'features', 'dashboard', 'why-byok', 'faq'];
+const AUTH_ITEMS = ['Sign Up', 'Log In'];
 const SECTION_HASHES = ['#top', '#providers', '#features', '#dashboard', '#why-byok', '#faq'];
 
 export default function Home() {
+  const navigate = useNavigate();
+  // Determine if user has previously signed up / logged in
+  const hasAccount = typeof window !== 'undefined' && localStorage.getItem('byok_has_account') === 'true';
+  const authDefaultIndex = hasAccount ? 1 : 0; // 0 = Sign Up, 1 = Log In
   const [legalModalType, setLegalModalType] = useState(null);
   const [activeWheelIndex, setActiveWheelIndex] = useState(0);
   const isAutoScrolling = useRef(false);
@@ -24,19 +30,19 @@ export default function Home() {
   const navDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lenisRef = useRef<any>(null);
   const wheelContainerRef = useRef<HTMLDivElement>(null);
+  const authWheelContainerRef = useRef<HTMLDivElement>(null);
 
-  // Block ALL wheel events on the fixed wheel container so they never reach Lenis.
+  // Block ALL wheel events on the fixed wheel containers so they never reach Lenis.
   // Must use addEventListener (not React onWheel) because React registers passive
   // listeners which cannot call preventDefault().
   useEffect(() => {
-    const container = wheelContainerRef.current;
-    if (!container) return;
+    const containers = [wheelContainerRef.current, authWheelContainerRef.current];
     const blockWheel = (e: WheelEvent) => {
       e.preventDefault();
       e.stopPropagation();
     };
-    container.addEventListener('wheel', blockWheel, { passive: false });
-    return () => container.removeEventListener('wheel', blockWheel);
+    containers.forEach(c => c?.addEventListener('wheel', blockWheel, { passive: false }));
+    return () => containers.forEach(c => c?.removeEventListener('wheel', blockWheel));
   }, []);
 
   // Sync wheel highlight from page scroll (only when user scrolls page directly)
@@ -94,6 +100,8 @@ export default function Home() {
     }, 180); // slightly longer than the OptionWheel's 140ms snap debounce
   }, []);
 
+
+
   return (
     <ReactLenis root ref={lenisRef}>
       <div style={{ backgroundColor: '#050408', color: '#ffffff', minHeight: '100vh', position: 'relative', overflowX: 'hidden' }}>
@@ -148,6 +156,55 @@ export default function Home() {
               navigateToSection(index);
             }}
           />
+        </div>
+
+        {/* Right-side auth wheel — static, non-interactive display */}
+        <div
+          ref={authWheelContainerRef}
+          className="auth-wheel-container"
+          style={{
+            position: 'fixed', top: 0, right: 0, height: '100vh', width: '300px',
+            zIndex: 50, display: 'flex', alignItems: 'center',
+          }}
+        >
+          <OptionWheel
+            items={AUTH_ITEMS}
+            defaultSelected={authDefaultIndex}
+            textColor="#a1a1aa"
+            activeColor="#ffffff"
+            side="right"
+            fontSize={1.7}
+            spacing={1.8}
+            curve={1}
+            tilt={6}
+            blur={2}
+            fade={0.25}
+            smoothing={80}
+            inset={40}
+            loop={false}
+            draggable={false}
+          />
+          {/* Clickable overlay — sits exactly on the highlighted text */}
+          <span
+            className="auth-wheel-hitbox"
+            onClick={() => navigate(hasAccount ? '/workspace' : '/auth?mode=signup')}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              right: '40px',
+              transform: 'translateY(-50%)',
+              fontSize: '1.7rem',
+              fontWeight: 500,
+              color: 'transparent',
+              cursor: 'pointer',
+              zIndex: 10,
+              lineHeight: 1,
+              padding: '4px 8px',
+              userSelect: 'none',
+            }}
+          >
+            {hasAccount ? 'Log In' : 'Sign Up'}
+          </span>
         </div>
 
         <main>

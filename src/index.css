@@ -248,6 +248,18 @@ button {
   }
 }
 
+/* Hide both side-wheels on small screens */
+@media (max-width: 1100px) {
+  .auth-wheel-container {
+    display: none !important;
+  }
+}
+
+/* Auth wheel: purely decorative, no scroll/drag/click interaction */
+.auth-wheel-container .option-wheel {
+  pointer-events: none;
+}
+
 /* Custom 4-sided gradient border animation */
 @keyframes gradient-pan {
   0% {

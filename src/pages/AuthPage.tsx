@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { SplineScene } from '@/components/ui/splite';
@@ -19,27 +19,41 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const [animState, setAnimState] = useState<'blank' | 'meet' | 'byok' | 'form'>('blank');
+  const [animState, setAnimState] = useState<'blank' | 'meet' | 'meet_exit' | 'byok_entry' | 'byok_exit' | 'form'>('blank');
+  const [splineReady, setSplineReady] = useState(false);
+  const [mountSpline, setMountSpline] = useState(false);
+
+  // Track when the Spline scene finishes loading
+  const handleSplineLoad = useCallback(() => {
+    setSplineReady(true);
+  }, []);
 
   useEffect(() => {
-    // Sequence: blank (1s) -> meet (1.5s) -> byok (1.5s) -> form
-    const timer1 = setTimeout(() => {
-      setAnimState('meet');
-    }, 1000);
+    let timer: ReturnType<typeof setTimeout>;
+    
+    if (animState === 'blank') {
+      timer = setTimeout(() => setAnimState('meet'), 300);
+    } else if (animState === 'meet') {
+      // Meet stays on screen before exiting
+      timer = setTimeout(() => setAnimState('meet_exit'), 1200);
+    } else if (animState === 'meet_exit') {
+      // Meet fades out. Trigger next state slightly before finish to eliminate black screen gaps
+      timer = setTimeout(() => setAnimState('byok_entry'), 600);
+    } else if (animState === 'byok_entry') {
+      // BYOK stays on screen
+      timer = setTimeout(() => setAnimState('byok_exit'), 1200);
+    } else if (animState === 'byok_exit') {
+      // BYOK fades out. Trigger form slightly before finish
+      timer = setTimeout(() => setAnimState('form'), 600);
+    }
 
-    const timer2 = setTimeout(() => {
-      setAnimState('byok');
-    }, 2000);
+    return () => clearTimeout(timer);
+  }, [animState]);
 
-    const timer3 = setTimeout(() => {
-      setAnimState('form');
-    }, 4500);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-    };
+  useEffect(() => {
+    // Delay Spline mount so it doesn't compete with the initial entrance
+    const timer = setTimeout(() => setMountSpline(true), 800);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,6 +79,9 @@ export default function AuthPage() {
         throw new Error(data.error || 'Authentication failed');
       }
 
+      // Persist auth state so the landing page can adapt
+      localStorage.setItem('byok_has_account', 'true');
+
       // Success, navigate to workspace
       navigate('/workspace');
     } catch (err: any) {
@@ -73,6 +90,9 @@ export default function AuthPage() {
       setIsLoading(false);
     }
   };
+
+  // Show the 3D scene once both the animation phase AND Spline loading are ready
+  const showScene = (animState === 'byok_entry' || animState === 'byok_exit' || animState === 'form') && splineReady;
 
   return (
     <div className="h-screen w-screen bg-[#050408] overflow-hidden">
@@ -87,47 +107,64 @@ export default function AuthPage() {
         </button>
 
         <div className="flex h-full flex-col md:flex-row">
-          {/* Left content (Text animation / Form) */}
-          <div className="flex-1 p-8 md:p-12 relative z-10 flex flex-col justify-center border-r border-white/5">
-            <AnimatePresence mode="wait">
-              {animState === 'meet' && (
-                <motion.div
-                  key="meet"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.5 }}
-                  className="flex flex-col items-center justify-center text-center h-full"
-                >
-                  <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-500">
-                    Meet
-                  </h1>
-                </motion.div>
-              )}
+          <div className="flex-1 p-8 md:p-12 relative z-10 border-r border-white/5 overflow-hidden">
+            <div className="relative w-full h-full">
+              {/* MEET TEXT */}
+              <motion.div
+                className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none"
+                variants={{
+                  blank: { opacity: 0, y: 24 },
+                  meet: { opacity: 1, y: 0 },
+                  meet_exit: { opacity: 0, y: -24 },
+                  byok_entry: { opacity: 0, y: -24 },
+                  byok_exit: { opacity: 0, y: -24 },
+                  form: { opacity: 0, y: -24 }
+                }}
+                initial="blank"
+                animate={animState}
+                transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
+              >
+                <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-neutral-50 to-neutral-500">
+                  Meet
+                </h1>
+              </motion.div>
 
-              {animState === 'byok' && (
-                <motion.div
-                  key="byok"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.5 }}
-                  className="flex flex-col items-center justify-center text-center h-full"
-                >
-                  <h1 className="text-6xl md:text-8xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-500">
-                    BYOK
-                  </h1>
-                </motion.div>
-              )}
+              {/* BYOK TEXT */}
+              <motion.div
+                className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none"
+                variants={{
+                  blank: { opacity: 0, y: 24 },
+                  meet: { opacity: 0, y: 24 },
+                  meet_exit: { opacity: 0, y: 24 },
+                  byok_entry: { opacity: 1, y: 0 },
+                  byok_exit: { opacity: 0, y: -24 },
+                  form: { opacity: 0, y: -24 }
+                }}
+                initial="blank"
+                animate={animState}
+                transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
+              >
+                <h1 className="text-6xl md:text-8xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-500">
+                  BYOK
+                </h1>
+              </motion.div>
 
-              {animState === 'form' && (
-                <motion.div
-                  key="form"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                  className="flex flex-col justify-center h-full max-w-md mx-auto w-full"
-                >
+              {/* FORM */}
+              <motion.div
+                className="absolute inset-0 flex flex-col justify-center max-w-md mx-auto w-full"
+                variants={{
+                  blank: { opacity: 0, y: 24 },
+                  meet: { opacity: 0, y: 24 },
+                  meet_exit: { opacity: 0, y: 24 },
+                  byok_entry: { opacity: 0, y: 24 },
+                  byok_exit: { opacity: 0, y: 24 },
+                  form: { opacity: 1, y: 0 }
+                }}
+                initial="blank"
+                animate={animState}
+                transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
+                style={{ pointerEvents: animState === 'form' ? 'auto' : 'none' }}
+              >
                   <div className="mb-8">
                     <h2 className="text-3xl font-bold text-white mb-2">
                       {mode === 'login' ? 'Welcome Back' : 'Create your account'}
@@ -208,23 +245,34 @@ export default function AuthPage() {
                     )}
                   </div>
                 </motion.div>
-              )}
-            </AnimatePresence>
+            </div>
           </div>
 
-          {/* Right content (3D Scene) */}
-          <div className="flex-1 relative hidden sm:block h-full w-full">
+          {/* Right content (3D Scene) — always mounted, faded in when ready */}
+          <div className="flex-1 relative hidden sm:block h-full w-full overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/20 to-[#050408] z-10 pointer-events-none" />
-            <div className="absolute inset-0 w-full h-full z-0">
-              {(animState === 'byok' || animState === 'form') && (
-                <React.Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="w-8 h-8 rounded-full border-4 border-purple-500 border-t-transparent animate-spin"></div></div>}>
+            <motion.div
+              className="absolute inset-0 w-full h-full z-0 origin-center"
+              initial={{ opacity: 0, scale: 1.25 }}
+              animate={{
+                opacity: showScene ? 1 : 0,
+                scale: animState === 'form' ? 1 : 1.25
+              }}
+              transition={{
+                opacity: { duration: 1.2, ease: "easeInOut" },
+                scale: { duration: 3.5, ease: [0.16, 1, 0.3, 1] } // Super smooth cinematic zoom-out
+              }}
+            >
+              {mountSpline && (
+                <React.Suspense fallback={null}>
                   <SplineScene 
                     scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
                     className="w-full h-full"
+                    onLoad={handleSplineLoad}
                   />
                 </React.Suspense>
               )}
-            </div>
+            </motion.div>
           </div>
         </div>
       </Card>

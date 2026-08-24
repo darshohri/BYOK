@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const Database = require('better-sqlite3');
 
 const app = express();
 const PORT = 3001;
@@ -8,8 +9,16 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-// In-memory mock database
-const users = [];
+// Initialize SQLite database
+const db = new Database('database.sqlite');
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    fullName TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL
+  )
+`);
 
 // Sign Up Route
 app.post('/api/signup', (req, res) => {
@@ -19,24 +28,25 @@ app.post('/api/signup', (req, res) => {
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
-  const existingUser = users.find(u => u.email === email);
-  if (existingUser) {
-    return res.status(400).json({ error: 'User already exists' });
+  try {
+    const insert = db.prepare('INSERT INTO users (id, fullName, email, password) VALUES (?, ?, ?, ?)');
+    const id = Date.now().toString();
+    const finalFullName = fullName || 'Anonymous';
+    
+    insert.run(id, finalFullName, email, password);
+    console.log(`New user registered: ${email}`);
+    
+    res.status(201).json({ 
+      message: 'User created successfully', 
+      user: { id, fullName: finalFullName, email } 
+    });
+  } catch (err) {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
-
-  const newUser = {
-    id: Date.now().toString(),
-    fullName: fullName || 'Anonymous',
-    email,
-    password // In a real app, hash this!
-  };
-  
-  users.push(newUser);
-  console.log(`New user registered: ${email}`);
-  
-  // Return user without password
-  const { password: _, ...userWithoutPassword } = newUser;
-  res.status(201).json({ message: 'User created successfully', user: userWithoutPassword });
 });
 
 // Login Route
@@ -47,18 +57,26 @@ app.post('/api/login', (req, res) => {
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
-  const user = users.find(u => u.email === email && u.password === password);
-  
-  if (!user) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE email = ? AND password = ?').get(email, password);
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
-  console.log(`User logged in: ${email}`);
-  
-  const { password: _, ...userWithoutPassword } = user;
-  res.status(200).json({ message: 'Login successful', user: userWithoutPassword });
+    console.log(`User logged in: ${email}`);
+    const { password: _, ...userWithoutPassword } = user;
+    
+    res.status(200).json({ 
+      message: 'Login successful', 
+      user: userWithoutPassword 
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 app.listen(PORT, () => {
-  console.log(`Mock Backend running on http://localhost:${PORT}`);
+  console.log(`Backend running on http://localhost:${PORT} with persistent SQLite database`);
 });

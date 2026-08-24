@@ -35,10 +35,18 @@ Welcome to the **BYOK** project repository! This is a modern, responsive landing
    npm install
    ```
 
-3. Start the development server:
+3. Start the development server (Frontend):
    ```bash
    npm run dev
    ```
+
+4. Start the backend server (Authentication & Database):
+   ```bash
+   cd backend
+   npm install
+   npx nodemon server.js
+   ```
+   *Note: The backend automatically manages a local `database.sqlite` file to permanently store your accounts.*
 
 ## Project Structure
 
