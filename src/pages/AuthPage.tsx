@@ -6,6 +6,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { SplineScene } from '@/components/ui/splite';
 import { Card } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
+import { useUserStore } from '@/store/user';
 
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
@@ -81,6 +82,11 @@ export default function AuthPage() {
 
       // Persist auth state so the landing page can adapt
       localStorage.setItem('byok_has_account', 'true');
+      
+      // Store user data in Zustand
+      if (data.user) {
+        useUserStore.getState().setUser(data.user);
+      }
 
       // Success, navigate to workspace
       navigate('/workspace');

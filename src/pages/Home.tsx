@@ -13,6 +13,7 @@ import Footer from '../components/Footer';
 import LegalModal from '../components/LegalModal';
 import DotField from '../components/ui/DotField';
 import ScrollToTop from '../components/ScrollToTop';
+import { useUserStore } from '../store/user';
 
 const SECTION_IDS = ['top', 'providers', 'features', 'dashboard', 'why-byok', 'faq'];
 const AUTH_ITEMS = ['Sign Up', 'Log In'];
@@ -20,9 +21,11 @@ const SECTION_HASHES = ['#top', '#providers', '#features', '#dashboard', '#why-b
 
 export default function Home() {
   const navigate = useNavigate();
-  // Determine if user has previously signed up / logged in
-  const hasAccount = typeof window !== 'undefined' && localStorage.getItem('byok_has_account') === 'true';
-  const authDefaultIndex = hasAccount ? 1 : 0; // 0 = Sign Up, 1 = Log In
+  const user = useUserStore(s => s.user);
+  const isLoggedIn = !!user;
+  const AUTH_ITEMS = isLoggedIn ? ['Log In'] : ['Sign Up', 'Log In'];
+  const authDefaultIndex = 0;
+  
   const [legalModalType, setLegalModalType] = useState(null);
   const [activeWheelIndex, setActiveWheelIndex] = useState(0);
   const isAutoScrolling = useRef(false);
@@ -187,7 +190,19 @@ export default function Home() {
           {/* Clickable overlay — sits exactly on the highlighted text */}
           <span
             className="auth-wheel-hitbox"
-            onClick={() => navigate(hasAccount ? '/workspace' : '/auth?mode=signup')}
+            onClick={() => {
+              if (isLoggedIn) {
+                navigate('/workspace');
+              } else {
+                // If they are not logged in, but click the wheel when 'Log In' is selected, 
+                // we should respect what they scrolled to. But for the direct click on the default,
+                // we'll send them to signup since that's the default index.
+                // However, since we can't easily read the active index of the right wheel here
+                // without state, clicking the static button will just go to AuthPage.
+                // The AuthPage has tabs anyway.
+                navigate('/auth?mode=signup');
+              }
+            }}
             style={{
               position: 'absolute',
               top: '50%',
@@ -200,10 +215,9 @@ export default function Home() {
               zIndex: 10,
               lineHeight: 1,
               padding: '4px 8px',
-              userSelect: 'none',
             }}
           >
-            {hasAccount ? 'Log In' : 'Sign Up'}
+            {isLoggedIn ? 'Log In' : 'Sign Up'}
           </span>
         </div>
 
