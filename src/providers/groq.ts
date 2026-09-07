@@ -38,11 +38,39 @@ const DEFAULT_GROQ_MODELS: ModelInfo[] = [
 /**
  * Convert BYOK chat messages to OpenAI-compatible format.
  */
-function toGroqMessages(messages: SendMessageParams['messages']) {
-  return messages.map(m => ({
-    role: m.role,
-    content: m.content,
-  }));
+export function toOpenAIMessages(messages: SendMessageParams['messages']) {
+  return messages.map(m => {
+    let textContent = m.content || '';
+    const imageParts: any[] = [];
+
+    if (m.attachments) {
+      for (const att of m.attachments) {
+        if (att.type === 'file') {
+          textContent += `\n\n[File: ${att.name}]\n${att.data}`;
+        } else if (att.type === 'image') {
+          imageParts.push({
+            type: 'image_url',
+            image_url: { url: att.data }
+          });
+        }
+      }
+    }
+
+    if (imageParts.length > 0) {
+      return {
+        role: m.role,
+        content: [
+          { type: 'text', text: textContent },
+          ...imageParts
+        ]
+      };
+    }
+
+    return {
+      role: m.role,
+      content: textContent,
+    };
+  });
 }
 
 export const groqProvider: AIProvider = {
@@ -109,7 +137,7 @@ export const groqProvider: AIProvider = {
 
     const body = {
       model,
-      messages: toGroqMessages(messages),
+      messages: toOpenAIMessages(messages),
       stream: !!onChunk,
     };
 

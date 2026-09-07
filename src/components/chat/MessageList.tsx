@@ -13,9 +13,10 @@ interface MessageListProps {
   messages: ConversationMessage[];
   streamingMessageId?: string | null;
   onRetry?: (messageId: string) => void;
+  onEdit?: (messageId: string, newContent: string) => void;
 }
 
-export default function MessageList({ messages, streamingMessageId, onRetry }: MessageListProps) {
+export default function MessageList({ messages, streamingMessageId, onRetry, onEdit }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const lastMessageCount = useRef(messages.length);
@@ -36,6 +37,7 @@ export default function MessageList({ messages, streamingMessageId, onRetry }: M
             message={msg}
             isStreaming={msg.id === streamingMessageId}
             onRetry={onRetry ? () => onRetry(msg.id) : undefined}
+            onEdit={onEdit}
           />
         ))}
         <div ref={bottomRef} />

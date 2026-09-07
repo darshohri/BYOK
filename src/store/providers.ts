@@ -24,7 +24,7 @@ interface ProviderState {
   // ── Actions ───────────────────────────────
 
   /** Initialize store from persisted storage on app boot. */
-  initialize(): void;
+  initialize(): Promise<void>;
 
   /**
    * Connect a provider by validating the key and fetching models.
@@ -33,7 +33,7 @@ interface ProviderState {
   connectProvider(id: ProviderId, key: string): Promise<boolean>;
 
   /** Disconnect a provider — removes key and resets state. */
-  disconnectProvider(id: ProviderId): void;
+  disconnectProvider(id: ProviderId): Promise<void>;
 
   /** Set the user's selected model for a provider. */
   setSelectedModel(id: ProviderId, modelId: string): void;
@@ -56,6 +56,7 @@ function createEmptyConnection(): ProviderConnection {
     connected: false,
     selectedModel: null,
     availableModels: [],
+    maskedKey: null,
   };
 }
 
@@ -80,19 +81,29 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   loading: createInitialFlags(false),
   errors: createInitialFlags<string | null>(null),
 
-  initialize() {
+  async initialize() {
     const providerIds = getAllProviderIds();
     const connections = { ...get().connections };
 
     for (const id of providerIds) {
-      const hasKey = keyStorage.hasKey(id);
+      const hasKey = await keyStorage.hasKey(id);
       const savedModel = appStorage.getSelectedModel(id);
 
       if (hasKey) {
+        let key = await keyStorage.getKey(id);
+        let masked: string | null = null;
+        if (key) {
+          masked = keyStorage.maskKey(key);
+          localStorage.setItem(`_mask_${id}`, masked);
+        } else {
+          masked = localStorage.getItem(`_mask_${id}`);
+        }
+        if (!masked) masked = '••••••••••••••••'; // fallback
         connections[id] = {
           connected: true,
           selectedModel: savedModel,
           availableModels: [], // Will be populated on first use or refresh
+          maskedKey: masked,
         };
       }
     }
@@ -127,7 +138,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
       }
 
       // Store the key
-      keyStorage.setKey(id, key);
+      await keyStorage.setKey(id, key);
 
       // Fetch available models
       let models: ModelInfo[] = [];
@@ -155,6 +166,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
             selectedModel,
             availableModels: models,
             lastValidated: Date.now(),
+            maskedKey: keyStorage.maskKey(key),
           },
         },
         loading: { ...s.loading, [id]: false },
@@ -171,8 +183,8 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
     }
   },
 
-  disconnectProvider(id: ProviderId) {
-    keyStorage.removeKey(id);
+  async disconnectProvider(id: ProviderId) {
+    await keyStorage.removeKey(id);
     appStorage.removeSelectedModel(id);
 
     set(s => ({
@@ -199,7 +211,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   },
 
   async refreshModels(id: ProviderId) {
-    const key = keyStorage.getKey(id);
+    const key = await keyStorage.getKey(id);
     if (!key) return;
 
     set(s => ({ loading: { ...s.loading, [id]: true } }));
@@ -238,7 +250,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   },
 
   async testConnection(id: ProviderId): Promise<boolean> {
-    const key = keyStorage.getKey(id);
+    const key = await keyStorage.getKey(id);
     if (!key) return false;
 
     set(s => ({ loading: { ...s.loading, [id]: true } }));

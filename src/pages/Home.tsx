@@ -23,8 +23,8 @@ export default function Home() {
   const navigate = useNavigate();
   const user = useUserStore(s => s.user);
   const isLoggedIn = !!user;
-  const AUTH_ITEMS = isLoggedIn ? ['Log In'] : ['Sign Up', 'Log In'];
-  const authDefaultIndex = 0;
+  const AUTH_ITEMS = ['Sign Up', 'Log In'];
+  const authDefaultIndex = isLoggedIn ? 1 : 0;
   
   const [legalModalType, setLegalModalType] = useState(null);
   const [activeWheelIndex, setActiveWheelIndex] = useState(0);

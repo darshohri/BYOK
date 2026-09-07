@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Lock, LogOut, Check, Loader2 } from 'lucide-react';
+import { X, User, Lock, LogOut, Check, Loader2, Shield } from 'lucide-react';
 import { useUserStore } from '@/store/user';
 import { useNavigate } from 'react-router-dom';
+import { auth } from '@/lib/firebase';
+import { deleteUser, updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { keyManager } from '@/lib/storage';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -13,7 +16,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { user, updateUser, logout } = useUserStore();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'passphrase'>('profile');
 
   // Profile state
   const [fullName, setFullName] = useState(user?.fullName || '');
@@ -28,6 +31,13 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [pwdSaving, setPwdSaving] = useState(false);
   const [pwdMsg, setPwdMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  // Passphrase state
+  const [currentPassphrase, setCurrentPassphrase] = useState('');
+  const [newPassphrase, setNewPassphrase] = useState('');
+  const [confirmPassphrase, setConfirmPassphrase] = useState('');
+  const [passphraseSaving, setPassphraseSaving] = useState(false);
+  const [passphraseMsg, setPassphraseMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
   // Reset state when opened
   React.useEffect(() => {
     if (isOpen) {
@@ -36,8 +46,12 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      setCurrentPassphrase('');
+      setNewPassphrase('');
+      setConfirmPassphrase('');
       setProfileMsg(null);
       setPwdMsg(null);
+      setPassphraseMsg(null);
     }
   }, [isOpen]);
 
@@ -49,14 +63,11 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setProfileMsg(null);
 
     try {
-      const res = await fetch('http://localhost:3001/api/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, fullName, email }),
-      });
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error('Not logged in');
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update profile');
+      await updateProfile(currentUser, { displayName: fullName });
+      // Note: Updating email in Firebase requires verification, keeping it simple here
 
       updateUser({ fullName, email });
       setProfileMsg({ text: 'Profile updated successfully.', type: 'success' });
@@ -83,14 +94,15 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setPwdSaving(true);
 
     try {
-      const res = await fetch('http://localhost:3001/api/password', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, currentPassword, newPassword }),
-      });
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error('Not logged in');
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update password');
+      if (currentUser.email) {
+        const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+        await reauthenticateWithCredential(currentUser, credential);
+      }
+
+      await updatePassword(currentUser, newPassword);
 
       setPwdMsg({ text: 'Password updated successfully.', type: 'success' });
       setCurrentPassword('');
@@ -103,12 +115,42 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     }
   };
 
+  const handleSavePassphrase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassphraseMsg(null);
+    if (newPassphrase.length < 4) {
+      setPassphraseMsg({ text: 'New passphrase must be at least 4 characters.', type: 'error' });
+      return;
+    }
+    if (newPassphrase !== confirmPassphrase) {
+      setPassphraseMsg({ text: 'New passphrases do not match.', type: 'error' });
+      return;
+    }
+
+    setPassphraseSaving(true);
+    try {
+      const success = await keyManager.changePassphrase(currentPassphrase, newPassphrase);
+      if (!success) {
+        setPassphraseMsg({ text: 'Incorrect current passphrase.', type: 'error' });
+        return;
+      }
+      setCurrentPassphrase('');
+      setNewPassphrase('');
+      setConfirmPassphrase('');
+      setPassphraseMsg({ text: 'Passphrase updated successfully.', type: 'success' });
+      setTimeout(() => setPassphraseMsg(null), 3000);
+    } catch (err: any) {
+      setPassphraseMsg({ text: err.message || 'An error occurred', type: 'error' });
+    } finally {
+      setPassphraseSaving(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  if (!user) return null;
 
   return (
     <AnimatePresence>
@@ -143,7 +185,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             {/* Content */}
             <div className="flex">
               {/* Sidebar Tabs */}
-              <div className="w-40 border-r border-white/[0.06] bg-[#0A0A0A] p-2 flex flex-col gap-1">
+              <div className="w-44 border-r border-white/[0.06] bg-[#0A0A0A] p-5 flex flex-col gap-2">
                 <button
                   onClick={() => setActiveTab('profile')}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
@@ -164,7 +206,18 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   }`}
                 >
                   <Lock size={15} />
-                  Security
+                  Password
+                </button>
+                <button
+                  onClick={() => setActiveTab('passphrase')}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
+                    activeTab === 'passphrase'
+                      ? 'bg-white/[0.08] text-white'
+                      : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <Shield size={15} />
+                  Passphrase
                 </button>
                 <div className="flex-1" />
                 <button
@@ -228,65 +281,130 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 )}
 
                 {activeTab === 'password' && (
-                  <form onSubmit={handleSavePassword} className="space-y-4">
-                    <div>
-                      <label className="block text-[12px] font-medium text-neutral-400 mb-1.5">
-                        Current Password
-                      </label>
-                      <input
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-500/50 transition-colors"
-                        required
-                      />
-                    </div>
-                    <div className="h-px bg-white/[0.06] my-2" />
-                    <div>
-                      <label className="block text-[12px] font-medium text-neutral-400 mb-1.5">
-                        New Password
-                      </label>
-                      <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-500/50 transition-colors"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[12px] font-medium text-neutral-400 mb-1.5">
-                        Confirm New Password
-                      </label>
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-500/50 transition-colors"
-                        required
-                      />
-                    </div>
+                  <div className="space-y-6">
+                    <form onSubmit={handleSavePassword} className="space-y-3">
+                      <div>
+                        <label className="block text-[12px] font-medium text-neutral-400 mb-1">
+                          Current Password
+                        </label>
+                        <input
+                          type="password"
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-500/50 transition-colors"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[12px] font-medium text-neutral-400 mb-1">
+                          New Password
+                        </label>
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-500/50 transition-colors"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[12px] font-medium text-neutral-400 mb-1">
+                          Confirm New Password
+                        </label>
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-500/50 transition-colors"
+                          required
+                        />
+                      </div>
 
-                    <div className="min-h-[36px] flex flex-col justify-end">
-                      {pwdMsg && (
-                        <div className={`p-2 rounded-lg text-[12px] ${pwdMsg.type === 'error' ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
-                          {pwdMsg.type === 'success' && <Check size={14} className="inline mr-1" />}
-                          {pwdMsg.text}
-                        </div>
-                      )}
-                    </div>
+                      <div className="min-h-[36px] flex flex-col justify-end">
+                        {pwdMsg && (
+                          <div className={`p-2 rounded-lg text-[12px] ${pwdMsg.type === 'error' ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                            {pwdMsg.type === 'success' && <Check size={14} className="inline mr-1" />}
+                            {pwdMsg.text}
+                          </div>
+                        )}
+                      </div>
 
-                    <div className="pt-2">
-                      <button
-                        type="submit"
-                        disabled={pwdSaving}
-                        className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50"
-                      >
-                        {pwdSaving && <Loader2 size={14} className="animate-spin" />}
-                        Update Password
-                      </button>
-                    </div>
-                  </form>
+                      <div className="pt-2">
+                        <button
+                          type="submit"
+                          disabled={pwdSaving}
+                          className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50"
+                        >
+                          {pwdSaving && <Loader2 size={14} className="animate-spin" />}
+                          Update Password
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {activeTab === 'passphrase' && (
+                  <div className="space-y-6">
+                    <form onSubmit={handleSavePassphrase} className="space-y-3">
+                      <div>
+                        <label className="block text-[12px] font-medium text-neutral-400 mb-1">
+                          Current Passphrase
+                        </label>
+                        <input
+                          type="password"
+                          value={currentPassphrase}
+                          onChange={(e) => setCurrentPassphrase(e.target.value)}
+                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-500/50 transition-colors"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[12px] font-medium text-neutral-400 mb-1">
+                          New Passphrase
+                        </label>
+                        <input
+                          type="password"
+                          value={newPassphrase}
+                          onChange={(e) => setNewPassphrase(e.target.value)}
+                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-500/50 transition-colors"
+                          required
+                          minLength={4}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[12px] font-medium text-neutral-400 mb-1">
+                          Confirm New Passphrase
+                        </label>
+                        <input
+                          type="password"
+                          value={confirmPassphrase}
+                          onChange={(e) => setConfirmPassphrase(e.target.value)}
+                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-500/50 transition-colors"
+                          required
+                        />
+                      </div>
+
+                      <div className="min-h-[36px] flex flex-col justify-end">
+                        {passphraseMsg && (
+                          <div className={`p-2 rounded-lg text-[12px] ${passphraseMsg.type === 'error' ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                            {passphraseMsg.type === 'success' && <Check size={14} className="inline mr-1" />}
+                            {passphraseMsg.text}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-2">
+                        <button
+                          type="submit"
+                          disabled={passphraseSaving}
+                          className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50"
+                        >
+                          {passphraseSaving && <Loader2 size={14} className="animate-spin" />}
+                          Update Passphrase
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 )}
               </div>
             </div>

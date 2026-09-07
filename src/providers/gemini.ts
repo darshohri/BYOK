@@ -15,6 +15,16 @@ const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1';
  */
 const DEFAULT_GEMINI_MODELS: ModelInfo[] = [
   {
+    id: 'gemini-3.7-flash',
+    name: 'Gemini 3.7 Flash',
+    provider: 'gemini',
+    capabilities: ['text', 'vision', 'reasoning', 'tools', 'structuredOutput', 'longContext'],
+    contextLength: 2097152,
+    modality: ['text', 'image'],
+    isFree: true,
+    description: 'Next-generation fast and efficient model',
+  },
+  {
     id: 'gemini-1.5-flash',
     name: 'Gemini 1.5 Flash',
     provider: 'gemini',
@@ -51,10 +61,38 @@ const DEFAULT_GEMINI_MODELS: ModelInfo[] = [
 function toGeminiContents(messages: SendMessageParams['messages']) {
   return messages
     .filter(m => m.role !== 'system')
-    .map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
+    .map(m => {
+      const parts: any[] = [];
+      let textContent = m.content || '';
+
+      if (m.attachments) {
+        for (const att of m.attachments) {
+          if (att.type === 'file') {
+            textContent += `\n\n[File: ${att.name}]\n${att.data}`;
+          } else if (att.type === 'image') {
+            const b64Match = att.data.match(/base64,(.*)$/);
+            const b64 = b64Match ? b64Match[1] : null;
+            if (b64) {
+              parts.push({
+                inlineData: {
+                  mimeType: att.mimeType,
+                  data: b64
+                }
+              });
+            }
+          }
+        }
+      }
+
+      if (textContent) {
+        parts.unshift({ text: textContent });
+      }
+
+      return {
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: parts.length > 0 ? parts : [{ text: '' }],
+      };
+    });
 }
 
 /**
@@ -94,7 +132,7 @@ export const geminiProvider: AIProvider = {
           m.name.includes('gemini') &&
           !m.name.includes('-image') &&
           !m.name.includes('-vision') &&
-          !m.name.includes('3.7') &&
+          !m.name.includes('-tts') &&
           !m.name.includes('2.5') &&
           !m.name.includes('exp')
         )
@@ -124,6 +162,7 @@ export const geminiProvider: AIProvider = {
 
     const systemInstruction = getSystemInstruction(messages);
     const contents = toGeminiContents(messages);
+    const isTitleGenerator = systemInstruction?.includes('title generator');
 
     const body: any = { contents };
     if (systemInstruction) {
@@ -141,7 +180,7 @@ export const geminiProvider: AIProvider = {
 
     // Use streaming if onChunk is provided
     if (onChunk) {
-      return streamGeminiResponse(model, body, apiKey, startTime, signal, onChunk);
+      return streamGeminiResponse(model, body, apiKey, startTime, signal, onChunk, isTitleGenerator);
     }
 
     // Non-streaming fallback
@@ -161,7 +200,13 @@ export const geminiProvider: AIProvider = {
     }
 
     const data = await res.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    let content = '';
+    const parts = data.candidates?.[0]?.content?.parts || [];
+    for (const part of parts) {
+      if (isTitleGenerator && part.thought) continue;
+      content += part.text || '';
+    }
+    
     const usage = data.usageMetadata;
 
     return {
@@ -189,7 +234,8 @@ async function streamGeminiResponse(
   apiKey: string,
   startTime: number,
   signal: AbortSignal | undefined,
-  onChunk: (chunk: string) => void
+  onChunk: (chunk: string) => void,
+  isTitleGenerator: boolean = false
 ): Promise<AIResponse> {
   const res = await fetch(
     `${GEMINI_API_BASE}/models/${model}:streamGenerateContent?key=${apiKey}&alt=sse`,
@@ -241,6 +287,8 @@ async function streamGeminiResponse(
           
           if (Array.isArray(parts)) {
             for (const part of parts) {
+              if (isTitleGenerator && part.thought) continue;
+              
               // Thoughts might be in part.text (with a flag) or in part.thought directly
               const chunkText = part.thought || part.text;
               if (chunkText) {

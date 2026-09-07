@@ -50,7 +50,7 @@ const Hero = () => {
               fontWeight: '400'
             }}
           >
-            Connect Gemini, Groq, and OpenRouter in a single intelligent workspace. Compare models, monitor usage, and use your own API keys with complete control.
+            Connect Gemini, Groq, and OpenRouter in a single intelligent workspace. Route prompts intelligently, monitor usage, and use your own API keys with complete control.
           </motion.p>
         </motion.div>
       </div>

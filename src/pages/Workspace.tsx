@@ -6,7 +6,7 @@
 // Child routes render inside the main area.
 // ─────────────────────────────────────────────
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import Sidebar from '@/components/sidebar/Sidebar';
@@ -14,16 +14,19 @@ import { useProviderStore } from '@/store/providers';
 import { useChatStore } from '@/store/chat';
 import { useSettingsStore } from '@/store/settings';
 import { useAnalyticsStore } from '@/store/analytics';
+import { keyManager } from '@/lib/storage';
 
 export default function Workspace() {
+
   const initProviders = useProviderStore(s => s.initialize);
   const initChat = useChatStore(s => s.initialize);
   const initSettings = useSettingsStore(s => s.initialize);
   const initAnalytics = useAnalyticsStore(s => s.initialize);
   const setSidebarCollapsed = useSettingsStore(s => s.setSidebarCollapsed);
 
-  // Initialize all stores on workspace mount
   useEffect(() => {
+    // Always initialize stores regardless of unlock state,
+    // they don't decrypt keys on mount, only flag them as connected
     initProviders();
     initChat();
     initSettings();

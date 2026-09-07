@@ -22,6 +22,9 @@ interface SettingsState {
   /** Whether the sidebar is collapsed (tablet/mobile). */
   sidebarCollapsed: boolean;
 
+  /** Token count threshold to trigger long-context routing (default 8000). */
+  longContextThreshold: number;
+
   // ── Actions ───────────────────────────────
 
   initialize(): void;
@@ -29,6 +32,7 @@ interface SettingsState {
   setFallbackProvider(provider: ProviderId): void;
   setShowRoutingAnimation(show: boolean): void;
   setSidebarCollapsed(collapsed: boolean): void;
+  setLongContextThreshold(threshold: number): void;
 }
 
 function persistSettings(state: Partial<SettingsState>) {
@@ -45,6 +49,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   fallbackProvider: 'gemini',
   showRoutingAnimation: true,
   sidebarCollapsed: false,
+  longContextThreshold: 8000,
 
   initialize() {
     try {
@@ -56,6 +61,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           fallbackProvider: parsed.fallbackProvider || 'gemini',
           showRoutingAnimation: parsed.showRoutingAnimation ?? true,
           sidebarCollapsed: parsed.sidebarCollapsed ?? false,
+          longContextThreshold: parsed.longContextThreshold ?? 8000,
         });
       }
     } catch {
@@ -81,5 +87,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setSidebarCollapsed(collapsed: boolean) {
     set({ sidebarCollapsed: collapsed });
     persistSettings({ sidebarCollapsed: collapsed });
+  },
+
+  setLongContextThreshold(threshold: number) {
+    set({ longContextThreshold: threshold });
+    persistSettings({ longContextThreshold: threshold });
   },
 }));

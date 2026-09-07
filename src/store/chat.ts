@@ -34,7 +34,7 @@ interface ChatState {
   // ── Actions ───────────────────────────────
 
   /** Load persisted conversations on app boot. */
-  initialize(): void;
+  initialize(): Promise<void>;
 
   /** Create a new empty conversation and make it active. Returns the new ID. */
   createConversation(): string;
@@ -90,9 +90,9 @@ function generateTitle(content: string): string {
 }
 
 /** Persist conversations to storage. */
-function persist(conversations: Conversation[]) {
+async function persist(conversations: Conversation[]) {
   try {
-    appStorage.setChats(JSON.stringify(conversations));
+    await appStorage.setChats(JSON.stringify(conversations));
   } catch {
     // Storage full or unavailable — fail silently
   }
@@ -108,9 +108,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   generatingTitleId: null,
 
-  initialize() {
+  async initialize() {
     try {
-      const raw = appStorage.getChats();
+      await appStorage.migrateChats();
+      const raw = await appStorage.getChats();
       if (raw) {
         const parsed = JSON.parse(raw) as Conversation[];
         const activeId = appStorage.getActiveChat();

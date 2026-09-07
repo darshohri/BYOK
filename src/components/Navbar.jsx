@@ -1,7 +1,9 @@
 import React from 'react';
 import PillNav from './ui/PillNav';
+import { useUserStore } from '@/store/user';
 
 const Navbar = () => {
+  const user = useUserStore((state) => state.user);
   const navItems = [
     { label: 'Providers', href: '#providers' },
     { label: 'Features', href: '#features' },
@@ -53,20 +55,30 @@ const Navbar = () => {
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <PillNav
-            items={[
-              { label: 'Sign Up', href: '/auth?mode=signup' },
-              { label: 'Log In', href: '/workspace' }
-            ]}
-            baseColor="#8b5cf6"
-            pillColor="#13101d"
-            hoveredPillTextColor="#ffffff"
-            pillTextColor="#a1a1aa"
-            initialLoadAnimation={true}
-            hideMobileMenu={true}
-            className="action-pill-nav"
-          />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          {user ? (
+            <a 
+              href="/workspace"
+              className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-full text-[15px] font-semibold transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+            >
+              Workspace
+            </a>
+          ) : (
+            <>
+              <a 
+                href="/auth?mode=login"
+                className="text-neutral-400 hover:text-white text-[15px] font-semibold transition-colors"
+              >
+                Log In
+              </a>
+              <a 
+                href="/auth?mode=signup"
+                className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-full text-[15px] font-semibold transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+              >
+                Sign Up
+              </a>
+            </>
+          )}
         </div>
       </div>
       <style>{`

@@ -96,11 +96,11 @@ const FAQ = () => {
     },
     {
       q: 'How does the BYOK architecture work?',
-      a: 'When you execute a prompt or benchmark evaluation in our studio, your requests are made directly from your client browser interface to the official provider REST APIs. By cutting out intermediate servers, you experience raw native inference speed, zero platform queue delays, and guaranteed privacy.'
+      a: 'When you execute a prompt in our studio, your requests are routed directly to the official provider REST APIs. By cutting out intermediate servers, you experience raw native inference speed, zero platform queue delays, and complete control.'
     },
     {
       q: 'How are my personal API keys protected?',
-      a: 'Your API keys are encrypted using client-side Advanced Encryption Standard (AES-256) and reside exclusively inside your browser local storage vault. Your credentials are never transmitted to our servers, are never logged, and are cleared from volatile memory when your session ends.'
+      a: 'Your API keys are securely stored and encrypted. They are only used to authenticate your requests directly with the model providers, ensuring you retain full control over your credentials and usage.'
     },
     {
       q: 'Why should I switch from traditional subscription SaaS tools?',
@@ -108,11 +108,11 @@ const FAQ = () => {
     },
     {
       q: 'Which language models and providers are supported?',
-      a: 'Our universal protocol supports Google Gemini (Flash & Flash-Lite with 1M context), Groq LPU™ Engine (delivering over 300+ tokens/sec on Llama 3.1 and Mixtral), and the entire OpenRouter Ecosystem (giving you dynamic routing across Claude 3.5 Sonnet, DeepSeek-V3, Mistral Large, and 100+ top foundation models).'
+      a: 'Our universal protocol supports Google Gemini (3.5 & 3.6 Flash with 1M context), Groq LPU™ Engine (delivering over 300+ tokens/sec on Llama and Qwen models), and the entire OpenRouter Ecosystem (giving you dynamic routing across Nemotron, Lyria, LiquidAI, and 100+ top foundation models).'
     },
     {
       q: 'Is the BYOK developer studio free to use?',
-      a: 'Yes, the BYOK interface is completely free under open software licensing. There are no recurring subscription fees, no user accounts to register, and zero markup charges per inference token. You interact purely using your direct provider billing account.'
+      a: 'Yes, the BYOK interface is completely free. While you create a secure account to sync your chat history and settings across devices, there are no recurring subscription fees and zero markup charges per inference token. You interact purely using your direct provider billing account.'
     }
   ];
 

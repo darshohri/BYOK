@@ -148,30 +148,49 @@ export interface RouterResult {
   reason: string;
   /** Raw scores per provider (for debugging / UI). */
   scores: Record<ProviderId, number>;
+  /** Classifier latency if an LLM was used for routing. */
+  classifierLatencyMs?: number;
+  /** Classifier token usage if an LLM was used for routing. */
+  classifierTokenUsage?: TokenUsage;
+  /** Task category used for the decision. */
+  category?: string;
+  /** True if the decision was altered by user's historical bias. */
+  biasApplied?: boolean;
 }
 
 // ─────────────────────────────────────────────
 // Conversation
 // ─────────────────────────────────────────────
 
+export interface Attachment {
+  type: 'image' | 'file';
+  name: string;
+  mimeType: string;
+  data: string;
+}
+
 export interface ConversationMessage {
   id: string;
   role: MessageRole;
   content: string;
+  attachments?: Attachment[];
   timestamp: number;
   /** Provider that generated this message (assistant messages only). */
   provider?: ProviderId;
   /** Model used (assistant messages only). */
   model?: string;
   /** Routing metadata (assistant messages only, Smart Mode). */
-  routing?: {
-    mode: 'smart' | ProviderId;
-    confidence?: number;
-    reason?: string;
-    scores?: Record<ProviderId, number>;
-    latencyMs?: number;
-    tokenUsage?: TokenUsage;
-  };
+    routing?: {
+      mode: 'smart' | ProviderId;
+      confidence?: number;
+      reason?: string;
+      scores?: Record<ProviderId, number>;
+      latencyMs?: number;
+      tokenUsage?: TokenUsage;
+      classifierLatencyMs?: number;
+      classifierTokenUsage?: TokenUsage;
+      fallbackHistory?: { provider: ProviderId; error: string }[];
+    };
 }
 
 export interface Conversation {
@@ -191,6 +210,7 @@ export interface ProviderConnection {
   selectedModel: string | null;
   availableModels: ModelInfo[];
   lastValidated?: number;
+  maskedKey?: string | null;
 }
 
 /** The mode the user has selected in the Composer. */

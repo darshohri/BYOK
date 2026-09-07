@@ -8,7 +8,7 @@
 // ─────────────────────────────────────────────
 
 import type { AIProvider, ModelInfo, SendMessageParams, AIResponse } from './types';
-import { streamOpenAICompatible } from './groq';
+import { streamOpenAICompatible, toOpenAIMessages } from './groq';
 
 const OPENROUTER_API_BASE = 'https://openrouter.ai/api/v1';
 
@@ -70,6 +70,7 @@ export const openrouterProvider: AIProvider = {
         'featherless/', 'moonshotai/',
         'ai21/', 'databricks/', 'allenai/',
         'liquid/', 'together/', 'perplexity/',
+        'z-ai/', 'minimax/', 'poolside/',
       ];
 
       return models.filter(m => {
@@ -85,6 +86,13 @@ export const openrouterProvider: AIProvider = {
         if (id.includes('-ar-') || id.includes('-zh-') || id.includes('-ja-') || id.includes('-ko-')) return false;
         if (id.includes('gemma-4')) return false;
 
+        // Exclude specific requested models without touching others
+        if (id.includes('nemotron') && (id.includes('safety') || id.includes('3.5') || id.includes('3-5'))) return false;
+        if (id.includes('lyria')) return false;
+
+        // Exclude broken free models
+        if (id.includes('laguna-s') || id.includes('glm-5.2')) return false;
+
         // Whitelist known vendor prefixes
         return allowedPrefixes.some(prefix => id.startsWith(prefix));
       });
@@ -99,11 +107,10 @@ export const openrouterProvider: AIProvider = {
 
     const body = {
       model,
-      messages: messages.map(m => ({
-        role: m.role,
-        content: m.content,
-      })),
+      messages: toOpenAIMessages(messages),
       stream: !!onChunk,
+      max_tokens: 4096,
+      include_reasoning: true,
     };
 
     const res = await fetch(`${OPENROUTER_API_BASE}/chat/completions`, {
@@ -154,15 +161,15 @@ export const openrouterProvider: AIProvider = {
 /** Infer capabilities from OpenRouter model metadata. */
 function inferOpenRouterCapabilities(model: any): ModelInfo['capabilities'] {
   const caps: ModelInfo['capabilities'] = ['text'];
-  const arch = model.architecture || {};
+  const id = model.id?.toLowerCase() || '';
 
-  if (arch.modality?.includes('image') || arch.input_modalities?.includes('image')) {
+  if (id.includes('minimax/minimax-m3') || id.includes('nemotron-3-nano-omni')) {
     caps.push('vision');
   }
   if ((model.context_length || 0) > 100000) {
     caps.push('longContext');
   }
-  if (model.id?.includes('o1') || model.id?.includes('reasoning')) {
+  if (id.includes('o1') || id.includes('reasoning')) {
     caps.push('reasoning');
   }
   return caps;
@@ -171,9 +178,9 @@ function inferOpenRouterCapabilities(model: any): ModelInfo['capabilities'] {
 /** Infer modality from OpenRouter model metadata. */
 function inferOpenRouterModality(model: any): ModelInfo['modality'] {
   const modalities: ModelInfo['modality'] = ['text'];
-  const arch = model.architecture || {};
+  const id = model.id?.toLowerCase() || '';
 
-  if (arch.modality?.includes('image') || arch.input_modalities?.includes('image')) {
+  if (id.includes('minimax/minimax-m3') || id.includes('nemotron-3-nano-omni')) {
     modalities.push('image');
   }
   return modalities;

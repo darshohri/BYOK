@@ -2,12 +2,13 @@
 // BYOK — Settings Page
 // ─────────────────────────────────────────────
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import type { ProviderId, RoutingMode } from '@/providers/types';
 import { useSettingsStore } from '@/store/settings';
 import { useProviderStore } from '@/store/providers';
 import { PROVIDER_META } from '@/providers/registry';
+import { ledgerStorage, type OverrideEvent } from '@/lib/storage';
 
 const MODE_OPTIONS: { id: RoutingMode; label: string; description: string }[] = [
   {
@@ -29,7 +30,22 @@ export default function SettingsPage() {
   const setFallbackProvider = useSettingsStore(s => s.setFallbackProvider);
   const showRoutingAnimation = useSettingsStore(s => s.showRoutingAnimation);
   const setShowRoutingAnimation = useSettingsStore(s => s.setShowRoutingAnimation);
+  const longContextThreshold = useSettingsStore(s => s.longContextThreshold);
+  const setLongContextThreshold = useSettingsStore(s => s.setLongContextThreshold);
   const connections = useProviderStore(s => s.connections);
+
+  const [events, setEvents] = useState<OverrideEvent[]>([]);
+
+  useEffect(() => {
+    ledgerStorage.getAllEvents().then(setEvents);
+  }, []);
+
+  const handleResetLedger = async () => {
+    if (confirm("Are you sure you want to reset Router Insights? This will clear all historical routing biases.")) {
+       await ledgerStorage.resetLedger();
+       setEvents([]);
+    }
+  };
 
   return (
     <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-16 py-8">
@@ -142,7 +158,7 @@ export default function SettingsPage() {
         >
           <h2 className="text-[14px] font-semibold text-white mb-4">Preferences</h2>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-[13px] text-neutral-300">Routing animation</p>
               <p className="text-[11px] text-neutral-500">
@@ -164,6 +180,55 @@ export default function SettingsPage() {
                 }`}
               />
             </button>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-white/[0.04]">
+            <div>
+              <p className="text-[13px] text-neutral-300">Long-Context Threshold</p>
+              <p className="text-[11px] text-neutral-500 max-w-sm">
+                Prompts exceeding this approximate token count bypass normal classification and are sent to the model with the largest context window.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-1.5 focus-within:border-purple-500/50 focus-within:ring-1 focus-within:ring-purple-500/50 transition-all">
+              <input
+                type="number"
+                min="1000"
+                step="1000"
+                value={longContextThreshold}
+                onChange={(e) => setLongContextThreshold(Number(e.target.value) || 8000)}
+                className="w-16 bg-transparent text-[13px] text-white outline-none text-right font-mono"
+              />
+              <span className="text-[11px] text-neutral-500">tokens</span>
+            </div>
+          </div>
+        </motion.div>
+        {/* Router Insights */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.16 }}
+          className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 mt-6 mb-6"
+        >
+          <h2 className="text-[14px] font-semibold text-white mb-1">Router Insights</h2>
+          <p className="text-[12px] text-neutral-500 mb-4">
+            BYOK learns from your manual overrides to personalize Smart Routing.
+          </p>
+
+          <div className="flex items-center justify-between bg-[#0a0a0a] border border-white/[0.04] rounded-lg p-4">
+             <div>
+                <p className="text-[13px] text-white">Learned Overrides</p>
+                <p className="text-[11px] text-neutral-500 mt-0.5">
+                  {events.length} {events.length === 1 ? 'event' : 'events'} recorded
+                </p>
+             </div>
+             
+             <button
+               onClick={handleResetLedger}
+               disabled={events.length === 0}
+               className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-md text-[12px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+             >
+               Reset Ledger
+             </button>
           </div>
         </motion.div>
       </div>

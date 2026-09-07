@@ -15,8 +15,8 @@ const WhyBYOK = () => {
   const byokAdvantage = [
     { text: 'No monthly subscription — pay only your exact provider usage' },
     { text: 'Use your own API keys directly with sovereign governance' },
-    { text: 'Support for Gemini 1.5 Pro, Groq LPU, and OpenRouter' },
-    { text: 'Unified AI workspace to benchmark and compare output quality' },
+    { text: 'Support for Gemini 3.6 Flash, Groq LPU, and OpenRouter' },
+    { text: 'Unified AI workspace to intelligently route prompts to the best model' },
     { text: 'Transparent usage and latency tracking in real time' },
     { text: 'Privacy-first design with local-first key vault encryption' }
   ];
@@ -24,7 +24,7 @@ const WhyBYOK = () => {
   return (
     <section id="why-byok" style={{ padding: '100px 0', background: 'transparent', position: 'relative', overflow: 'hidden' }}>
       <div className="container" style={{ maxWidth: '1180px' }}>
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
@@ -32,7 +32,7 @@ const WhyBYOK = () => {
           className="section-header"
         >
           {/* FREE FOREVER green pill badge removed per instructions */}
-          
+
           <h2 className="section-title" style={{ marginTop: 0 }}>Why Developers Choose BYOK</h2>
           <p className="section-subtitle">
             Break free from repetitive SaaS subscriptions and proprietary garden ecosystems. Bring your own keys and experience pure sovereign intelligence.
@@ -46,7 +46,7 @@ const WhyBYOK = () => {
           alignItems: 'stretch'
         }}>
           {/* Old Subscriptions Side */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -50, scale: 0.94 }}
             whileInView={{ opacity: 1, x: 0, scale: 1 }}
             viewport={{ once: true, amount: 0.2 }}
@@ -83,7 +83,7 @@ const WhyBYOK = () => {
           </motion.div>
 
           {/* The BYOK Advantage Side */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 50, scale: 0.94 }}
             whileInView={{ opacity: 1, x: 0, scale: 1 }}
             viewport={{ once: true, amount: 0.2 }}

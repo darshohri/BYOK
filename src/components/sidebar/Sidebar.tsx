@@ -19,7 +19,8 @@ import {
   ChevronDown,
   ChevronRight,
   MessageSquare,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import ProviderStatus from './ProviderStatus';
 import NavItem from './NavItem';
@@ -38,10 +39,18 @@ export default function Sidebar() {
   const activeConversationId = useChatStore(s => s.activeConversationId);
   const setActiveConversation = useChatStore(s => s.setActiveConversation);
   const generatingTitleId = useChatStore(s => s.generatingTitleId);
+  const deleteConversation = useChatStore(s => s.deleteConversation);
   const sidebarCollapsed = useSettingsStore(s => s.sidebarCollapsed);
   const setSidebarCollapsed = useSettingsStore(s => s.setSidebarCollapsed);
 
+  const currentConv = conversations.find(c => c.id === activeConversationId);
+  const isNewChatDisabled = currentConv ? currentConv.messages.length === 0 : false;
+
   const handleNewChat = () => {
+    if (isNewChatDisabled) {
+      navigate('/workspace');
+      return;
+    }
     createConversation();
     navigate('/workspace');
   };
@@ -101,15 +110,16 @@ export default function Sidebar() {
         <div className="px-3 pt-1 pb-3">
           <button
             onClick={handleNewChat}
-            className="
+            disabled={isNewChatDisabled}
+            className={`
               w-full flex items-center justify-center gap-2
               px-4 py-2.5 rounded-lg
               text-[15px] font-semibold text-white
-              bg-purple-600/90 hover:bg-purple-500/90
               transition-all duration-200
-              hover:shadow-[0_0_20px_rgba(139,92,246,0.25)]
-              active:scale-[0.98]
-            "
+              ${isNewChatDisabled 
+                ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed opacity-50' 
+                : 'bg-purple-600/90 hover:bg-purple-500/90 hover:shadow-[0_0_20px_rgba(139,92,246,0.25)] active:scale-[0.98]'}
+            `}
             aria-label="New Chat"
           >
             <Plus size={18} />
@@ -152,27 +162,38 @@ export default function Sidebar() {
                         const isActive = chat.id === activeConversationId;
                         const isGenerating = chat.id === generatingTitleId;
                         return (
-                          <button
-                            key={chat.id}
-                            onClick={() => {
-                              setActiveConversation(chat.id);
-                              navigate('/workspace');
-                            }}
-                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] text-left truncate transition-colors ${
-                              isActive
-                                ? 'bg-white/[0.06] text-white'
-                                : 'text-neutral-400 hover:bg-white/[0.04] hover:text-neutral-200'
-                            }`}
-                          >
-                            {isGenerating ? (
-                              <Loader2 size={14} className="shrink-0 animate-spin text-purple-400" />
-                            ) : (
-                              <MessageSquare size={14} className="shrink-0" />
-                            )}
-                            <span className={`truncate ${isGenerating ? 'animate-pulse text-purple-400/80' : ''}`}>
-                              {chat.title}
-                            </span>
-                          </button>
+                          <div key={chat.id} className="relative group w-full flex items-center">
+                            <button
+                              onClick={() => {
+                                setActiveConversation(chat.id);
+                                navigate('/workspace');
+                              }}
+                              className={`flex-1 min-w-0 flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] text-left truncate transition-colors pr-8 ${
+                                isActive
+                                  ? 'bg-white/[0.06] text-white'
+                                  : 'text-neutral-400 hover:bg-white/[0.04] hover:text-neutral-200'
+                              }`}
+                            >
+                              {isGenerating ? (
+                                <Loader2 size={14} className="shrink-0 animate-spin text-purple-400" />
+                              ) : (
+                                <MessageSquare size={14} className="shrink-0" />
+                              )}
+                              <span className={`truncate ${isGenerating ? 'animate-pulse text-purple-400/80' : ''}`}>
+                                {chat.title}
+                              </span>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteConversation(chat.id);
+                              }}
+                              className="absolute right-1.5 p-1.5 rounded-md text-neutral-500 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all"
+                              title="Delete chat"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         );
                       })
                   )}

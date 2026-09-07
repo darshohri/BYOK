@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, RefreshCw, Check, Loader2, Cpu, ChevronDown, ChevronRight } from 'lucide-react';
+import { Search, RefreshCw, Check, Loader2, Cpu, ChevronDown, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import type { ProviderId, ModelInfo } from '@/providers/types';
 import { PROVIDER_META } from '@/providers/registry';
 import { useProviderStore } from '@/store/providers';
@@ -192,6 +192,11 @@ function ModelRow({
           }`}>
             {model.name}
           </p>
+          {model.capabilities.includes('vision') && (
+            <span title="Vision Capable" className="flex items-center shrink-0">
+              <ImageIcon size={12} className="text-blue-400" />
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-[11px] text-neutral-600 font-mono truncate">

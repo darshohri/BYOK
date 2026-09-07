@@ -2,17 +2,35 @@
 // BYOK — API Keys Page
 // ─────────────────────────────────────────────
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Key, Check, X, Loader2, Eye, EyeOff } from 'lucide-react';
 import type { ProviderId } from '@/providers/types';
 import { PROVIDER_META } from '@/providers/registry';
 import { useProviderStore } from '@/store/providers';
-import { keyStorage } from '@/lib/storage';
+import { keyStorage, keyManager } from '@/lib/storage';
+import KeyUnlockModal from '@/components/ui/KeyUnlockModal';
 
 const PROVIDERS: ProviderId[] = ['gemini', 'groq', 'openrouter'];
 
 export default function ApiKeysPage() {
+  const [isUnlocked, setIsUnlocked] = useState(keyManager.isUnlocked());
+  const initializeStore = useProviderStore(state => state.initialize);
+
+  useEffect(() => {
+    // If we're already unlocked (e.g. via passphrase change), ensure store has decrypted keys
+    if (isUnlocked) {
+      initializeStore();
+    }
+  }, [isUnlocked, initializeStore]);
+
+  if (!isUnlocked) {
+    return <KeyUnlockModal onUnlocked={async () => {
+      setIsUnlocked(true);
+      // The useEffect above will handle the initializeStore call now
+    }} />;
+  }
+
   return (
     <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-16 py-8">
       <div className="max-w-2xl mx-auto">
@@ -51,7 +69,7 @@ function ProviderKeyCard({ providerId }: { providerId: ProviderId }) {
   const [testResult, setTestResult] = useState<'success' | 'fail' | null>(null);
 
   const meta = PROVIDER_META[providerId];
-  const maskedKey = connection.connected ? keyStorage.maskKey(keyStorage.getKey(providerId) || '') : null;
+  const maskedKey = connection.connected ? connection.maskedKey : null;
 
   const handleConnect = async () => {
     if (!keyInput.trim()) return;
@@ -107,14 +125,6 @@ function ProviderKeyCard({ providerId }: { providerId: ProviderId }) {
             <Key size={14} className="text-neutral-500" />
             <span className="text-[13px] text-neutral-400 font-mono">{maskedKey}</span>
           </div>
-
-          {/* Selected model */}
-          {connection.selectedModel && (
-            <div className="text-[12px] text-neutral-500 mb-3">
-              <span className="text-neutral-600">Model: </span>
-              <span className="text-neutral-400">{connection.selectedModel}</span>
-            </div>
-          )}
 
           {/* Actions */}
           <div className="flex items-center gap-2">
