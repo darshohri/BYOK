@@ -16,7 +16,7 @@ const FEATURE_SLIDES = [
     ],
   },
   {
-    src: '/features/sworkspace.png',
+    src: '/features/workspace.jpg',
     alt: 'Smart Mode Routing — automatically route prompts to the best model',
     title: 'Smart Mode Routing',
     subtitle: 'Use Smart Mode to let the workspace automatically route your prompts, or manually choose between Gemini, Groq, and OpenRouter.',

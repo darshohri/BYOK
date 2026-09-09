@@ -99,7 +99,24 @@ function ProviderKeyCard({ providerId }: { providerId: ProviderId }) {
           <span className="text-lg">{meta.icon}</span>
           <div>
             <h3 className="text-[14px] font-semibold text-white">{meta.name}</h3>
-            <p className="text-[11px] text-neutral-500">{meta.description}</p>
+            <p className="text-[11px] text-neutral-500">
+              {meta.description}
+              {' • '}
+              <a
+                href={
+                  providerId === 'gemini'
+                    ? 'https://aistudio.google.com/app/api-keys'
+                    : providerId === 'groq'
+                    ? 'https://console.groq.com/keys'
+                    : 'https://openrouter.ai/workspaces/default/keys'
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-400 hover:text-purple-300 transition-colors underline-offset-2 hover:underline ml-1"
+              >
+                Get API Key
+              </a>
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">

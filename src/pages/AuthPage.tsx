@@ -103,7 +103,7 @@ export default function AuthPage() {
 
   const getFriendlyErrorMessage = (errMsg: string) => {
     if (errMsg.includes('api-key-not-valid')) return 'Firebase Config Missing: Please provide a valid Firebase API Key in src/lib/firebase.ts to continue.';
-    if (errMsg.includes('configuration-not-found')) return 'Authentication Provider not enabled. Please go to your Firebase Console -> Authentication -> Sign-in method, and enable Email/Password and Google.';
+    if (errMsg.includes('configuration-not-found') || errMsg.includes('operation-not-allowed')) return 'Authentication Provider not enabled. Please go to your Firebase Console -> Authentication -> Sign-in method, and enable Email/Password and Google.';
     if (errMsg.includes('email-already-in-use')) return 'An account with this email already exists.';
     if (errMsg.includes('user-not-found') || errMsg.includes('wrong-password') || errMsg.includes('invalid-credential')) return 'Invalid email or password.';
     if (errMsg.includes('weak-password')) return 'Password must be at least 6 characters long.';

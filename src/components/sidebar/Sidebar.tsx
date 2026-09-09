@@ -6,10 +6,11 @@
 // ─────────────────────────────────────────────
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
+  ArrowLeft,
   Clock,
   BarChart3,
   Cpu,
@@ -34,6 +35,7 @@ export default function Sidebar() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const user = useUserStore(s => s.user);
   const navigate = useNavigate();
+  const location = useLocation();
   const createConversation = useChatStore(s => s.createConversation);
   const conversations = useChatStore(s => s.conversations);
   const activeConversationId = useChatStore(s => s.activeConversationId);
@@ -43,10 +45,16 @@ export default function Sidebar() {
   const sidebarCollapsed = useSettingsStore(s => s.sidebarCollapsed);
   const setSidebarCollapsed = useSettingsStore(s => s.setSidebarCollapsed);
 
+  const isChatPage = location.pathname === '/workspace' || location.pathname === '/workspace/';
   const currentConv = conversations.find(c => c.id === activeConversationId);
   const isNewChatDisabled = currentConv ? currentConv.messages.length === 0 : false;
+  const shouldDisableButton = isChatPage && isNewChatDisabled;
 
   const handleNewChat = () => {
+    if (!isChatPage) {
+      navigate('/workspace');
+      return;
+    }
     if (isNewChatDisabled) {
       navigate('/workspace');
       return;
@@ -106,24 +114,24 @@ export default function Sidebar() {
           <ProviderStatus providerId="openrouter" />
         </div>
 
-        {/* ── New Chat Button ── */}
+        {/* ── New Chat / Back to Chat Button ── */}
         <div className="px-3 pt-1 pb-3">
           <button
             onClick={handleNewChat}
-            disabled={isNewChatDisabled}
+            disabled={shouldDisableButton}
             className={`
               w-full flex items-center justify-center gap-2
               px-4 py-2.5 rounded-lg
               text-[15px] font-semibold text-white
               transition-all duration-200
-              ${isNewChatDisabled 
+              ${shouldDisableButton 
                 ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed opacity-50' 
                 : 'bg-purple-600/90 hover:bg-purple-500/90 hover:shadow-[0_0_20px_rgba(139,92,246,0.25)] active:scale-[0.98]'}
             `}
-            aria-label="New Chat"
+            aria-label={isChatPage ? "New Chat" : "Back to Chat"}
           >
-            <Plus size={18} />
-            New Chat
+            {isChatPage ? <Plus size={18} /> : <ArrowLeft size={18} />}
+            {isChatPage ? "New Chat" : "Back to Chat"}
           </button>
         </div>
 

@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Plus, ChevronDown, X, FileText, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Send, Plus, ChevronDown, X, FileText, Image as ImageIcon, Loader2, Brain } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { RoutingMode, ProviderId, Attachment } from '@/providers/types';
 import { useSettingsStore } from '@/store/settings';
@@ -223,14 +223,18 @@ export default function Composer({ onSend, disabled }: ComposerProps) {
             <div className="relative shrink-0" ref={dropdownRef}>
               <button
                 onClick={() => setModeDropdownOpen(!modeDropdownOpen)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-neutral-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.1] rounded-md transition-all border border-white/[0.04]"
+                className={`flex items-center gap-2 px-4 py-2 text-[15px] leading-none font-medium transition-all border border-white/[0.04] rounded-full ${
+                  mode === 'smart' 
+                    ? 'text-blue-400 bg-white/[0.08] hover:bg-white/[0.12]' 
+                    : 'text-neutral-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.1]'
+                }`}
                 aria-label="Select mode"
               >
                 {mode === 'smart' && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 mr-1" />
+                  <Brain size={18} className="text-blue-400" />
                 )}
-                {currentModeLabel}
-                <ChevronDown size={12} />
+                <span>{currentModeLabel}</span>
+                {mode !== 'smart' && <ChevronDown size={14} />}
               </button>
 
               <AnimatePresence>
@@ -268,14 +272,14 @@ export default function Composer({ onSend, disabled }: ComposerProps) {
                           >
                             <div className="w-4 flex items-center justify-center shrink-0">
                               {opt.id === 'smart' ? (
-                                <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                                <Brain size={14} className="text-blue-400" />
                               ) : (
                                 <span className="text-[11px] flex items-center justify-center">
                                   {PROVIDER_META[opt.id as ProviderId]?.icon}
                                 </span>
                               )}
                             </div>
-                            <span className="flex-1">{opt.label}</span>
+                            <span className={`flex-1 ${(opt.id === 'smart' || opt.id === 'openrouter') ? '-translate-y-[1px]' : ''}`}>{opt.label}</span>
                             {isProvider && !isConnected && (
                               <span className="text-[10px] text-neutral-600">
                                 No key
