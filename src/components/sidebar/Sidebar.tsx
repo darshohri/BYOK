@@ -91,9 +91,18 @@ export default function Sidebar() {
       >
         {/* ── Top: Branding ── */}
         <div className="flex items-center justify-between px-5 h-14 border-b border-white/[0.04] shrink-0">
-          <span className="text-lg font-bold tracking-tight text-white">
-            BYOK
-          </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/')}
+              className="text-neutral-400 hover:text-white transition-colors"
+              aria-label="Back to Home"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <span className="text-lg font-bold tracking-tight text-white">
+              BYOK
+            </span>
+          </div>
           {/* Mobile close button */}
           <button
             onClick={() => setSidebarCollapsed(true)}
