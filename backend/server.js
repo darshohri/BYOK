@@ -139,6 +139,10 @@ app.put('/api/password', (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT} with persistent SQLite database`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Backend running on http://localhost:${PORT} with persistent SQLite database`);
+  });
+}
+
+module.exports = app;
