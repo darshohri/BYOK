@@ -14,24 +14,24 @@ const GROQ_API_BASE = 'https://api.groq.com/openai/v1';
  */
 const DEFAULT_GROQ_MODELS: ModelInfo[] = [
   {
-    id: 'llama3-70b-8192',
-    name: 'Llama 3 70B',
+    id: 'llama-3.3-70b-versatile',
+    name: 'Llama 3.3 70B',
     provider: 'groq',
     capabilities: ['text', 'reasoning'],
-    contextLength: 8192,
+    contextLength: 128000,
     modality: ['text'],
     isFree: true,
     description: 'Versatile large language model on Groq',
   },
   {
-    id: 'llama3-8b-8192',
-    name: 'Llama 3 8B',
+    id: 'qwen-2.5-32b',
+    name: 'Qwen 2.5 32B',
     provider: 'groq',
     capabilities: ['text'],
-    contextLength: 8192,
+    contextLength: 32768,
     modality: ['text'],
     isFree: true,
-    description: 'Ultra-fast small model',
+    description: 'Highly capable multilingual model',
   },
 ];
 
