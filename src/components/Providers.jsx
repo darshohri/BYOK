@@ -10,12 +10,12 @@ const Providers = () => {
       id: 'gemini',
       name: 'Google Gemini',
       tag: 'Best for Everyday & Multimodal AI',
-      desc: 'Harness Gemini 1.5 & 3.7 Flash directly with a 2M token context window. Perfect for extensive codebase analysis, deep reasoning, and multimodal image processing.',
+      desc: 'Harness Gemini Flash models directly with a 2M token context window. Perfect for extensive codebase analysis, deep reasoning, and multimodal image processing.',
       icon: <GeminiLogo size={28} />,
       badgeColor: '#a855f7',
       glowColor: 'purple',
       status: 'Verified BYOK Protocol',
-      metrics: { latency: '~45ms', context: '2M Tokens', models: 'Flash / Pro' }
+      metrics: { latency: '~45ms', context: '2M Tokens', models: 'Flash' }
     },
     {
       id: 'groq',
@@ -26,7 +26,7 @@ const Providers = () => {
       badgeColor: '#f97316',
       glowColor: 'orange',
       status: 'Ultra-Low Latency',
-      metrics: { latency: '~15ms', context: '30K Tokens', models: 'Llama 3.1 / Mixtral' }
+      metrics: { latency: '~15ms', context: '30K Tokens', models: 'Llama 3.3 / Qwen' }
     },
     {
       id: 'openrouter',
@@ -37,7 +37,7 @@ const Providers = () => {
       badgeColor: '#3b82f6',
       glowColor: 'blue',
       status: 'Universal API Gateway',
-      metrics: { latency: '~110ms', context: '250K+ Tokens', models: '100+ Providers' }
+      metrics: { latency: '~110ms', context: '250K+ Tokens', models: '5+ Providers' }
     }
   ];
 
@@ -47,10 +47,10 @@ const Providers = () => {
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: { 
-        duration: 0.7, 
+      transition: {
+        duration: 0.7,
         delay: custom * 0.18,
-        ease: [0.16, 1, 0.3, 1] 
+        ease: [0.16, 1, 0.3, 1]
       }
     })
   };
@@ -58,7 +58,7 @@ const Providers = () => {
   return (
     <section id="providers" style={{ padding: '80px 0 90px 0', background: 'transparent', position: 'relative' }}>
       <div className="container">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
@@ -87,9 +87,9 @@ const Providers = () => {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, amount: 0.2 }}
-              whileHover={{ 
-                y: -8, 
-                boxShadow: `0 20px 45px rgba(0,0,0,0.5), 0 0 25px ${p.badgeColor}33` 
+              whileHover={{
+                y: -8,
+                boxShadow: `0 20px 45px rgba(0,0,0,0.5), 0 0 25px ${p.badgeColor}33`
               }}
               style={{
                 borderRadius: '16px',
