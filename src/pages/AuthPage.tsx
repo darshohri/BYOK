@@ -88,15 +88,17 @@ export default function AuthPage() {
   const handleGoogleSignIn = async () => {
     try {
       setError('');
-      setIsLoading(true);
+      // We don't set isLoading(true) here because React state updates can cause
+      // the browser to lose the trusted user click context, resulting in a blocked popup.
       const result = await signInWithPopup(auth, googleProvider);
+      
+      setIsLoading(true);
       const user = result.user;
       useUserStore.getState().setUser({ id: user.uid, fullName: user.displayName || 'User', email: user.email || '' });
       localStorage.setItem('byok_has_account', 'true');
       navigate('/workspace');
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -107,6 +109,8 @@ export default function AuthPage() {
     if (errMsg.includes('email-already-in-use')) return 'An account with this email already exists.';
     if (errMsg.includes('user-not-found') || errMsg.includes('wrong-password') || errMsg.includes('invalid-credential')) return 'Invalid email or password.';
     if (errMsg.includes('weak-password')) return 'Password must be at least 6 characters long.';
+    if (errMsg.includes('popup-blocked')) return 'Popup blocked by browser. Please allow popups for this site in your browser settings to sign in with Google.';
+    if (errMsg.includes('unauthorized-domain')) return 'Domain not authorized. Please add this website URL to Firebase Console -> Authentication -> Settings -> Authorized domains.';
     return errMsg.replace('Firebase: ', '').replace(/Error \((.*?)\)\./, '$1');
   };
 
