@@ -82,11 +82,13 @@ function uid(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-/** Auto-generate a title from the first user message. */
+/** Auto-generate a placeholder title from the first user message (AI will replace this). */
 function generateTitle(content: string): string {
-  const cleaned = content.trim().replace(/\n/g, ' ');
-  if (cleaned.length <= 50) return cleaned;
-  return cleaned.slice(0, 47) + '...';
+  const cleaned = content.trim().replace(/\s+/g, ' ');
+  if (cleaned.length <= 35) return cleaned;
+  const truncated = cleaned.slice(0, 35);
+  const lastSpace = truncated.lastIndexOf(' ');
+  return (lastSpace > 10 ? truncated.slice(0, lastSpace) : truncated) + '…';
 }
 
 /** Persist conversations to storage. */

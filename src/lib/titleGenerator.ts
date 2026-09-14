@@ -5,6 +5,16 @@ import { keyStorage } from '@/lib/storage';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const TITLE_SYSTEM_PROMPT =
+  'You are a chat title generator. Given a user message, produce a short, descriptive title (2–6 words) that captures the core topic or intent. ' +
+  'Rules: Do NOT repeat the message verbatim. Summarize the topic abstractly. Capitalize like a Book Title. ' +
+  'Return ONLY the title — no quotes, no punctuation at the end, no markdown, no explanation.';
+
+/**
+ * Generate a high-quality AI-powered title for a chat conversation.
+ * Tries providers in priority order: Groq (fastest) → Gemini → current provider.
+ * If all AI attempts fail, falls back to a smart local truncation.
+ */
 export async function generateChatTitle(
   convId: string,
   userMessage: string,
@@ -14,40 +24,47 @@ export async function generateChatTitle(
 ) {
   try {
     useChatStore.getState().setGeneratingTitleId(convId);
-    
-    let success = false;
-    
-    // Wait a brief moment to allow the main chat stream to cleanly disconnect and avoid strict concurrent rate limits (e.g. Gemini free tier)
-    await delay(500);
 
-    // Attempt 1: Try Gemini if available
+    // Brief delay to let the main chat stream start cleanly
+    await delay(300);
+
+    // Build ordered list of providers to try
+    const attempts: { providerId: ProviderId; model: string; apiKey: string }[] = [];
+
+    // 1. Groq — fastest inference, ideal for quick title gen
+    const groqKey = await keyStorage.getKey('groq');
+    if (groqKey) {
+      attempts.push({ providerId: 'groq', model: 'openai/gpt-oss-20b', apiKey: groqKey });
+    }
+
+    // 2. Gemini — reliable and free
     const geminiKey = await keyStorage.getKey('gemini');
     if (geminiKey) {
+      attempts.push({ providerId: 'gemini', model: 'gemini-1.5-flash', apiKey: geminiKey });
+    }
+
+    // 3. Current provider as final AI attempt (skip if already queued above)
+    if (providerId !== 'groq' && providerId !== 'gemini') {
+      attempts.push({ providerId, model, apiKey });
+    }
+
+    for (const attempt of attempts) {
       try {
-        const title = await attemptGeneration('gemini', 'gemini-1.5-flash', geminiKey, userMessage);
-        if (title) {
+        const title = await attemptGeneration(attempt.providerId, attempt.model, attempt.apiKey, userMessage);
+        if (title && title.length > 1) {
           useChatStore.getState().renameConversation(convId, title);
-          success = true;
-          return;
+          return; // Success — done
         }
       } catch (err) {
-        console.warn('Gemini title generation failed, falling back to current provider', err);
+        console.warn(`Title gen with ${attempt.providerId}/${attempt.model} failed, trying next...`, err);
+        // Small delay before retrying with a different provider
+        await delay(300);
       }
     }
 
-    // Attempt 2: Fallback to the current provider that is handling the chat
-    if (!success) {
-      try {
-        // Wait again before falling back to ensure we don't hit rapid rate limits
-        await delay(1500);
-        const title = await attemptGeneration(providerId, model, apiKey, userMessage);
-        if (title) {
-          useChatStore.getState().renameConversation(convId, title);
-        }
-      } catch (err) {
-        console.error(`Fallback title generation with ${providerId} failed:`, err);
-      }
-    }
+    // All AI attempts failed — use smart local fallback
+    const fallback = localFallbackTitle(userMessage);
+    useChatStore.getState().renameConversation(convId, fallback);
   } catch (error) {
     console.error('Failed to auto-generate title:', error);
   } finally {
@@ -55,30 +72,73 @@ export async function generateChatTitle(
   }
 }
 
-async function attemptGeneration(providerId: ProviderId, model: string, apiKey: string, userMessage: string): Promise<string | null> {
+async function attemptGeneration(
+  providerId: ProviderId,
+  model: string,
+  apiKey: string,
+  userMessage: string
+): Promise<string | null> {
   const provider = getProvider(providerId);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-  const response = await provider.sendMessage({
-    model,
-    messages: [
-      { role: 'system', content: 'You are a highly skilled title generator for a chat app. Based on the user\'s prompt, generate a concise, descriptive title (2 to 5 words). The title must abstractly summarize the core topic or intent. Do NOT just repeat or capitalize the user\'s prompt. Return ONLY the title text, capitalized like a Book Title. Do NOT use quotes, punctuation at the end, or markdown formatting.' },
-      { role: 'user', content: userMessage }
-    ],
-    apiKey,
-    signal: controller.signal
-  });
-  
-  clearTimeout(timeoutId);
+  try {
+    const response = await provider.sendMessage({
+      model,
+      messages: [
+        { role: 'system', content: TITLE_SYSTEM_PROMPT },
+        { role: 'user', content: userMessage.slice(0, 500) } // Limit input to save tokens
+      ],
+      apiKey,
+      signal: controller.signal
+    });
 
-  if (response.content) {
-    let title = response.content.trim();
-    title = title.replace(/^["'*#]+|["'*#]+$/g, '').trim();
-    if (title.length > 50) {
-      title = title.slice(0, 47) + '...';
+    clearTimeout(timeoutId);
+
+    if (response.content) {
+      let title = response.content.trim();
+      // Strip quotes, markdown, asterisks, hashes
+      title = title.replace(/^["""'*#`\-–—]+|["""'*#`\-–—.!?]+$/g, '').trim();
+      // Remove any leading "Title:" prefix the model might add
+      title = title.replace(/^(title|topic|subject|chat)\s*[:：]\s*/i, '').trim();
+      // Take only the first line if multi-line
+      title = title.split('\n')[0].trim();
+
+      if (title.length > 50) {
+        title = title.slice(0, 47) + '...';
+      }
+
+      return title.length > 1 ? title : null;
     }
-    return title;
+    return null;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
   }
-  return null;
+}
+
+/**
+ * Smart local fallback: extract the first meaningful phrase from the message.
+ * Much better than raw truncation.
+ */
+function localFallbackTitle(content: string): string {
+  const cleaned = content.trim().replace(/\s+/g, ' ');
+
+  // If it's a question, use the question up to 50 chars
+  const questionMatch = cleaned.match(/^(.+?\?)/);
+  if (questionMatch && questionMatch[1].length <= 50) {
+    return questionMatch[1];
+  }
+
+  // Extract first sentence/clause
+  const sentenceMatch = cleaned.match(/^(.+?[.!?])\s/);
+  if (sentenceMatch && sentenceMatch[1].length <= 50) {
+    return sentenceMatch[1];
+  }
+
+  // Just truncate cleanly at word boundary
+  if (cleaned.length <= 40) return cleaned;
+  const truncated = cleaned.slice(0, 40);
+  const lastSpace = truncated.lastIndexOf(' ');
+  return (lastSpace > 15 ? truncated.slice(0, lastSpace) : truncated) + '...';
 }
