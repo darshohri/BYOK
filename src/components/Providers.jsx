@@ -26,7 +26,7 @@ const Providers = () => {
       badgeColor: '#f97316',
       glowColor: 'orange',
       status: 'Ultra-Low Latency',
-      metrics: { latency: '~15ms', context: '30K Tokens', models: 'Llama 3.3 / Qwen' }
+      metrics: { latency: '~15ms', context: '131K Tokens', models: 'GPT-OSS / Qwen3' }
     },
     {
       id: 'openrouter',
