@@ -187,7 +187,7 @@ export default function Sidebar() {
                               ) : (
                                 <MessageSquare size={14} className="shrink-0" />
                               )}
-                              <span className={`truncate ${isGenerating ? 'animate-pulse text-purple-400/80' : ''}`}>
+                              <span className={`truncate -translate-y-[1px] ${isGenerating ? 'animate-pulse text-purple-400/80' : ''}`}>
                                 {chat.title}
                               </span>
                             </button>

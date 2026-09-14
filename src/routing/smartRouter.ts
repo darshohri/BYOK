@@ -51,7 +51,7 @@ export interface SmartRouterParams {
 /**
  * Helper to fall back to the legacy regex heuristic.
  */
-function evaluateHeuristic(prompt: string, availableProviders: ProviderId[], connections: Record<ProviderId, ProviderConnection>, fallbackProvider: ProviderId): RouterResult {
+function evaluateHeuristic(prompt: string, availableProviders: ProviderId[], connections: Record<ProviderId, ProviderConnection>, fallbackProvider: ProviderId, hasImage?: boolean): RouterResult {
   const analysis = analyzePrompt(prompt);
   const rawScores = calculateScores(analysis, availableProviders);
   const normalizedScores = normalizeScores(rawScores);
@@ -71,7 +71,16 @@ function evaluateHeuristic(prompt: string, availableProviders: ProviderId[], con
     selectedProvider = fallbackProvider;
   }
 
-  const selectedModel = connections[selectedProvider].selectedModel || '';
+  let selectedModel = connections[selectedProvider].selectedModel || '';
+  
+  if (hasImage && selectedProvider === 'openrouter') {
+    const conn = connections[selectedProvider];
+    const selectedInfo = conn.availableModels.find(m => m.id === selectedModel);
+    if (!selectedInfo?.capabilities.includes('vision')) {
+      const fallbackVision = conn.availableModels.find(m => m.id.includes('nemotron-3-nano-omni'));
+      if (fallbackVision) selectedModel = fallbackVision.id;
+    }
+  }
   const taskDesc = TASK_DESCRIPTIONS[analysis.taskType] || 'general-purpose task';
 
   return {
@@ -97,12 +106,19 @@ export async function routePrompt(params: SmartRouterParams): Promise<RouterResu
   let availableProviders = (Object.entries(connections) as [ProviderId, ProviderConnection][])
     .filter(([, conn]) => conn.connected)
     .map(([id]) => id as ProviderId);
+    
+  const allConnectedProviders = [...availableProviders];
 
-  // If there's an image, strictly filter out providers whose selected model lacks vision
   if (hasImage) {
     availableProviders = availableProviders.filter(provider => {
       const conn = connections[provider];
       const model = conn.availableModels.find(m => m.id === conn.selectedModel);
+      
+      if (!model?.capabilities.includes('vision') && provider === 'openrouter') {
+        const fallbackVision = conn.availableModels.find(m => m.id.includes('nemotron-3-nano-omni'));
+        if (fallbackVision) return true;
+      }
+      
       return model?.capabilities.includes('vision');
     });
   }
@@ -164,17 +180,17 @@ export async function routePrompt(params: SmartRouterParams): Promise<RouterResu
 
   // Choose the best provider for classification (Prefer fast/cheap: Groq > Gemini > OpenRouter)
   let classifierProvider: ProviderId | null = null;
-  if (availableProviders.includes('groq')) classifierProvider = 'groq';
-  else if (availableProviders.includes('gemini')) classifierProvider = 'gemini';
-  else classifierProvider = availableProviders[0];
+  if (allConnectedProviders.includes('groq')) classifierProvider = 'groq';
+  else if (allConnectedProviders.includes('gemini')) classifierProvider = 'gemini';
+  else classifierProvider = allConnectedProviders[0];
 
   if (!classifierProvider) {
-    return evaluateHeuristic(prompt, availableProviders, connections, fallbackProvider);
+    return evaluateHeuristic(prompt, availableProviders, connections, fallbackProvider, hasImage);
   }
 
   const apiKey = await keyStorage.getKey(classifierProvider);
   if (!apiKey) {
-    return evaluateHeuristic(prompt, availableProviders, connections, fallbackProvider);
+    return evaluateHeuristic(prompt, availableProviders, connections, fallbackProvider, hasImage);
   }
 
   const providerObj = getProvider(classifierProvider);
@@ -252,7 +268,16 @@ Output ONLY valid JSON in this exact format:
       biasApplied = false;
     }
 
-    const selectedModel = connections[selectedProvider].selectedModel || '';
+    let selectedModel = connections[selectedProvider].selectedModel || '';
+    
+    if (hasImage && selectedProvider === 'openrouter') {
+      const conn = connections[selectedProvider];
+      const selectedInfo = conn.availableModels.find(m => m.id === selectedModel);
+      if (!selectedInfo?.capabilities.includes('vision')) {
+        const fallbackVision = conn.availableModels.find(m => m.id.includes('nemotron-3-nano-omni'));
+        if (fallbackVision) selectedModel = fallbackVision.id;
+      }
+    }
     
     return {
       provider: selectedProvider,

@@ -84,6 +84,10 @@ function toGeminiContents(messages: SendMessageParams['messages']) {
         }
       }
 
+      if (!textContent.trim() && parts.length > 0) {
+        textContent = 'Please describe the attached file(s).';
+      }
+
       if (textContent) {
         parts.unshift({ text: textContent });
       }

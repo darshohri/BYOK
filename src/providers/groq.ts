@@ -56,6 +56,10 @@ export function toOpenAIMessages(messages: SendMessageParams['messages']) {
       }
     }
 
+    if (!textContent.trim() && imageParts.length > 0) {
+      textContent = 'Please describe the attached image(s).';
+    }
+
     if (imageParts.length > 0) {
       return {
         role: m.role,
@@ -135,11 +139,16 @@ export const groqProvider: AIProvider = {
     const { model, messages, apiKey, signal, onChunk } = params;
     const startTime = performance.now();
 
-    const body = {
+    const body: any = {
       model,
       messages: toOpenAIMessages(messages),
       stream: !!onChunk,
     };
+    
+    // Add max_tokens to prevent "Request too large" errors on free tier for specific models like qwen
+    if (model.includes('qwen')) {
+      body.max_tokens = 800;
+    }
 
     const res = await fetch(`${GROQ_API_BASE}/chat/completions`, {
       method: 'POST',

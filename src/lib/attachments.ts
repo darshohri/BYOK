@@ -1,7 +1,8 @@
 import type { Attachment } from '@/providers/types';
+import heic2any from 'heic2any';
 
-// 100KB limit for text files to prevent context window explosion
-const MAX_TEXT_FILE_SIZE = 100 * 1024; 
+// 5MB limit for text files to accommodate larger context windows
+const MAX_TEXT_FILE_SIZE = 5 * 1024 * 1024; 
 
 export class AttachmentError extends Error {
   constructor(message: string) {
@@ -19,19 +20,31 @@ export async function processAttachments(files: FileList | File[]): Promise<Atta
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
+    const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
 
-    if (file.type.startsWith('image/')) {
-      const data = await processImage(file);
+    if (file.type.startsWith('image/') || isHeic) {
+      let imageFile = file;
+      if (isHeic) {
+        try {
+          const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+          const blobArray = Array.isArray(blob) ? blob : [blob];
+          imageFile = new File([blobArray[0]], file.name.replace(/\.heic|\.heif/i, '.jpg'), { type: 'image/jpeg' });
+        } catch (err) {
+          throw new AttachmentError(`Failed to convert HEIC image: ${file.name}`);
+        }
+      }
+
+      const data = await processImage(imageFile);
       attachments.push({
         type: 'image',
-        name: file.name,
+        name: imageFile.name,
         mimeType: 'image/jpeg', // we convert to jpeg
         data
       });
     } else {
       // Treat as text file
       if (file.size > MAX_TEXT_FILE_SIZE) {
-        throw new AttachmentError(`File ${file.name} is too large. Max size is 100KB.`);
+        throw new AttachmentError(`File ${file.name} is too large. Max size is 5MB.`);
       }
       const text = await file.text();
       attachments.push({

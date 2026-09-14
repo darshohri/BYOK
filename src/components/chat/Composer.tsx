@@ -31,6 +31,7 @@ export default function Composer({ onSend, disabled }: ComposerProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   
   const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -102,6 +103,32 @@ export default function Composer({ onSend, disabled }: ComposerProps) {
   const canSend = text.trim() || files.length > 0;
   const isDisabled = disabled || isProcessingFiles || (canSend && visionError !== null) || !canSend;
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
+      setErrorMsg(null);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+      setFiles(prev => [...prev, ...Array.from(e.clipboardData.files)]);
+      setErrorMsg(null);
+    }
+  };
+
   const handleSend = async () => {
     if (isDisabled) return;
     
@@ -155,7 +182,12 @@ export default function Composer({ onSend, disabled }: ComposerProps) {
     <div className="shrink-0 px-4 md:px-8 lg:px-16 pb-6 pt-2">
       <div className="max-w-4xl mx-auto">
         
-        <div className="flex flex-col bg-white/[0.04] border border-white/[0.08] rounded-xl transition-colors focus-within:border-white/[0.14] focus-within:bg-white/[0.05]">
+        <div 
+          className={`flex flex-col bg-white/[0.04] border rounded-xl transition-colors focus-within:border-white/[0.14] focus-within:bg-white/[0.05] ${isDragging ? 'border-purple-500/50 bg-purple-500/5' : 'border-white/[0.08]'}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           
           {/* File Previews */}
           {files.length > 0 && (
@@ -212,6 +244,7 @@ export default function Composer({ onSend, disabled }: ComposerProps) {
               value={text}
               onChange={e => setText(e.target.value)}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               placeholder="Ask BYOK anything..."
               disabled={disabled}
               rows={1}

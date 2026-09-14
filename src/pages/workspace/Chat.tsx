@@ -27,6 +27,7 @@ export default function ChatPage() {
     text: string;
     routeResult: RouterResult;
     convId: string;
+    hasImage: boolean;
   } | null>(null);
   
   const abortRef = useRef<AbortController | null>(null);
@@ -60,8 +61,23 @@ export default function ChatPage() {
     let currentModel = initialModel;
     let attemptedProviders = new Set<ProviderId>();
     let fallbackHistory: { provider: ProviderId; error: string }[] = [];
-    const availableProviders = Object.keys(connections).filter(p => connections[p as ProviderId]?.connected) as ProviderId[];
+    const currentConvForFilter = useChatStore.getState().getConversation(convId);
+    const hasImage = currentConvForFilter?.messages.some(m => m.attachments?.some(a => a.type === 'image')) || false;
 
+    let availableProviders = Object.keys(connections).filter(p => connections[p as ProviderId]?.connected) as ProviderId[];
+    if (hasImage) {
+      availableProviders = availableProviders.filter(provider => {
+        const conn = connections[provider as ProviderId];
+        const model = conn.availableModels.find(m => m.id === conn.selectedModel);
+        
+        if (!model?.capabilities.includes('vision') && provider === 'openrouter') {
+          const fallbackVision = conn.availableModels.find(m => m.id.includes('nemotron-3-nano-omni'));
+          if (fallbackVision) return true;
+        }
+        
+        return model?.capabilities.includes('vision');
+      });
+    }
     setRoutingState('hidden');
 
     addMessage(convId, {
@@ -183,7 +199,22 @@ export default function ChatPage() {
           if (nextProvider) {
             fallbackHistory.push({ provider: currentProvider, error: errorMessage });
             currentProvider = nextProvider;
-            currentModel = connections[nextProvider]?.selectedModel || '';
+            
+            const conn = connections[nextProvider];
+            let nextModel = conn?.selectedModel || '';
+            
+            if (hasImage && nextProvider === 'openrouter') {
+              const selectedInfo = conn?.availableModels.find(m => m.id === nextModel);
+              if (!selectedInfo?.capabilities.includes('vision')) {
+                const fallbackVision = conn?.availableModels.find(m => m.id.includes('nemotron-3-nano-omni'));
+                if (fallbackVision) {
+                  nextModel = fallbackVision.id;
+                  useProviderStore.getState().setSelectedModel('openrouter', fallbackVision.id);
+                }
+              }
+            }
+            
+            currentModel = nextModel;
             updateLastAssistantMessage(convId, `*Falling back to ${getProvider(currentProvider).name}...*`);
             continue;
           }
@@ -261,12 +292,16 @@ export default function ChatPage() {
       if (mode === 'smart') {
         if (showRoutingAnimation) setRoutingState('analyzing');
         
+        const currentConv = useChatStore.getState().getConversation(convId);
+        const hasHistoryImage = currentConv?.messages.some(m => m.attachments?.some(a => a.type === 'image')) || false;
+        const hasImage = !!attachments?.some(a => a.type === 'image') || hasHistoryImage;
+
         const routeResult = await routePrompt({
           prompt: text,
           connections,
           fallbackProvider,
           longContextThreshold,
-          hasImage: !!attachments?.some(a => a.type === 'image'),
+          hasImage,
         });
 
         if (!routeResult) {
@@ -281,7 +316,7 @@ export default function ChatPage() {
 
         if (showRoutingAnimation) {
           setRoutingState('selected', routeResult.provider, Math.round(routeResult.confidence * 100));
-          setPendingRoute({ text, routeResult, convId });
+          setPendingRoute({ text, routeResult, convId, hasImage });
           // execution pauses here, awaiting timeout or override
           return;
         } else {
@@ -311,11 +346,24 @@ export default function ChatPage() {
 
   const handleOverride = (provider: ProviderId) => {
     if (!pendingRoute) return;
-    const { text, convId, routeResult } = pendingRoute;
-    const model = connections[provider]?.selectedModel || '';
-    setPendingRoute(null);
+    const { text, convId, routeResult, hasImage } = pendingRoute;
+    let model = connections[provider]?.selectedModel || '';
     
-    if (routeResult.category && routeResult.provider !== provider) {
+    if (hasImage && provider === 'openrouter') {
+      const conn = connections[provider];
+      const selectedInfo = conn?.availableModels.find(m => m.id === model);
+      if (!selectedInfo?.capabilities.includes('vision')) {
+        const fallbackVision = conn?.availableModels.find(m => m.id.includes('nemotron-3-nano-omni'));
+        if (fallbackVision) {
+          model = fallbackVision.id;
+          useProviderStore.getState().setSelectedModel('openrouter', fallbackVision.id);
+        }
+      }
+    }
+    
+    setPendingRoute(null);
+
+    if (routeResult && provider !== routeResult.provider) {
       ledgerStorage.recordOverride(routeResult.category, routeResult.provider, provider).catch(console.error);
     }
     
@@ -390,22 +438,27 @@ export default function ChatPage() {
                </div>
                
                <div className="flex flex-wrap gap-2 mt-3">
-                 {Object.entries(connections).filter(([, c]) => c.connected).map(([id]) => {
+                  {Object.entries(connections).filter(([, c]) => c.connected).map(([id]) => {
                    const isSelected = id === pendingRoute.routeResult.provider;
                    const meta = PROVIDER_META[id as ProviderId];
+                   const isVisionDisabled = pendingRoute.hasImage && id === 'groq';
+                   
                    return (
                      <button
                        key={id}
+                       disabled={isVisionDisabled}
                        onClick={() => handleOverride(id as ProviderId)}
                        className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all flex items-center gap-1.5 ${
                          isSelected 
                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' 
-                           : 'bg-white/[0.03] text-neutral-400 border border-white/[0.05] hover:bg-white/[0.08]'
+                           : isVisionDisabled
+                             ? 'opacity-30 cursor-not-allowed bg-white/[0.01] text-neutral-600 border border-transparent'
+                             : 'bg-white/[0.03] text-neutral-400 border border-white/[0.05] hover:bg-white/[0.08]'
                        }`}
                      >
                        <span className="text-[14px]">{meta?.icon}</span>
                        {meta?.name}
-                       {!isSelected && <span className="opacity-0 group-hover:opacity-100 ml-1 text-[10px] uppercase tracking-wide">Override</span>}
+                       {!isSelected && !isVisionDisabled && <span className="opacity-0 group-hover:opacity-100 ml-1 text-[10px] uppercase tracking-wide">Override</span>}
                      </button>
                    );
                  })}
