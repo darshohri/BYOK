@@ -150,9 +150,22 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
 
       // Set a default model if none is saved
       const savedModel = appStorage.getSelectedModel(id);
+      
+      let defaultModelForProvider = models[0]?.id || null;
+      if (id === 'gemini') {
+        const preferred = models.find(m => m.id.includes('3.6-flash'));
+        if (preferred) defaultModelForProvider = preferred.id;
+      } else if (id === 'groq') {
+        const preferred = models.find(m => m.id === 'openai/gpt-oss-120b');
+        if (preferred) defaultModelForProvider = preferred.id;
+      } else if (id === 'openrouter') {
+        const preferred = models.find(m => m.id === 'nvidia/nemotron-3-nano-omni:free' || m.id === 'nvidia/nemotron-3-nano-omni');
+        if (preferred) defaultModelForProvider = preferred.id;
+      }
+
       const selectedModel = savedModel && models.some(m => m.id === savedModel)
         ? savedModel
-        : models[0]?.id || null;
+        : defaultModelForProvider;
 
       if (selectedModel) {
         appStorage.setSelectedModel(id, selectedModel);
