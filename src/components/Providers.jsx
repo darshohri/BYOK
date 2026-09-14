@@ -10,12 +10,12 @@ const Providers = () => {
       id: 'gemini',
       name: 'Google Gemini',
       tag: 'Best for Everyday & Multimodal AI',
-      desc: 'Harness Gemini 3.5 & 3.6 Flash directly with a 2M token context window. Perfect for extensive codebase analysis and deep reasoning.',
+      desc: 'Harness Gemini 1.5 & 3.7 Flash directly with a 2M token context window. Perfect for extensive codebase analysis, deep reasoning, and multimodal image processing.',
       icon: <GeminiLogo size={28} />,
       badgeColor: '#a855f7',
       glowColor: 'purple',
       status: 'Verified BYOK Protocol',
-      metrics: { latency: '~45ms', context: '1M Tokens', models: 'Flash / Flash-Lite' }
+      metrics: { latency: '~45ms', context: '2M Tokens', models: 'Flash / Pro' }
     },
     {
       id: 'groq',

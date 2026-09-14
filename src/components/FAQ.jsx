@@ -108,7 +108,7 @@ const FAQ = () => {
     },
     {
       q: 'Which language models and providers are supported?',
-      a: 'Our universal protocol supports Google Gemini (3.5 & 3.6 Flash with 1M context), Groq LPU™ Engine (delivering over 300+ tokens/sec on Llama and Qwen models), and the entire OpenRouter Ecosystem (giving you dynamic routing across Nemotron, Lyria, LiquidAI, and 100+ top foundation models).'
+      a: 'Our universal protocol supports Google Gemini (1.5 & 3.7 Flash with 2M context, plus robust vision capabilities), Groq LPU™ Engine (delivering over 300+ tokens/sec on Llama and Mixtral models), and the entire OpenRouter Ecosystem (giving you dynamic routing across Nemotron, Lyria, LiquidAI, and 100+ top foundation models).'
     },
     {
       q: 'Is the BYOK developer studio free to use?',
