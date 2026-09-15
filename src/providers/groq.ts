@@ -14,18 +14,28 @@ const GROQ_API_BASE = 'https://api.groq.com/openai/v1';
  */
 const DEFAULT_GROQ_MODELS: ModelInfo[] = [
   {
-    id: 'openai/gpt-oss-120b',
-    name: 'GPT-OSS 120B',
+    id: 'llama-3.3-70b-versatile',
+    name: 'Llama 3.3 70B',
     provider: 'groq',
     capabilities: ['text', 'reasoning'],
     contextLength: 131072,
     modality: ['text'],
     isFree: true,
-    description: 'OpenAI open-weights model on Groq',
+    description: 'Highly capable versatile model by Meta',
   },
   {
-    id: 'qwen/qwen3.6-27b',
-    name: 'Qwen 3.6 27B',
+    id: 'llama-3.1-8b-instant',
+    name: 'Llama 3.1 8B',
+    provider: 'groq',
+    capabilities: ['text'],
+    contextLength: 131072,
+    modality: ['text'],
+    isFree: true,
+    description: 'Fast, efficient model by Meta',
+  },
+  {
+    id: 'qwen-2.5-32b',
+    name: 'Qwen 2.5 32B',
     provider: 'groq',
     capabilities: ['text'],
     contextLength: 131072,

@@ -1,139 +1,181 @@
-import React, { useState, useEffect } from 'react';
-import { keyManager } from '@/lib/storage';
-import { Lock, Unlock, AlertTriangle, KeySquare } from 'lucide-react';
+// ─────────────────────────────────────────────
+// BYOK — Passphrase Confirmation Dialog
+// ─────────────────────────────────────────────
+// Only shown when the user clicks "Remove" on a connected API key.
+// In 'create' mode: prompts user to set a passphrase for the first time.
+// In 'verify' mode: asks for the existing passphrase to confirm removal.
+// Never shown during normal app use or chat.
+// ─────────────────────────────────────────────
 
-interface KeyUnlockModalProps {
-  onUnlocked: () => void;
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { keyManager } from '@/lib/storage';
+import { Lock, ShieldAlert, Eye, EyeOff } from 'lucide-react';
+
+interface PassphraseConfirmDialogProps {
+  /** What the passphrase protects — displayed in the UI. e.g. "Groq" */
+  providerName: string;
+  /** Called when the user successfully confirms the passphrase. */
+  onConfirmed: () => void;
+  /** Called when the user cancels. */
+  onCancel: () => void;
 }
 
-export default function KeyUnlockModal({ onUnlocked }: KeyUnlockModalProps) {
-  const [passphrase, setPassphrase] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<'create' | 'unlock' | 'migrate' | 'loading'>('loading');
+export default function PassphraseConfirmDialog({
+  providerName,
+  onConfirmed,
+  onCancel,
+}: PassphraseConfirmDialogProps) {
+  const needsCreate = !keyManager.hasPassphrase();
 
-  useEffect(() => {
-    async function determineMode() {
-      const hasPlaintext = keyManager.hasPlaintextKeys();
-      const hasEncrypted = await keyManager.hasAnyEncryptedKeys();
-      
-      if (hasPlaintext) {
-        setMode('migrate');
-      } else if (hasEncrypted) {
-        setMode('unlock');
-      } else {
-        setMode('create');
-      }
-    }
-    determineMode();
-  }, []);
+  const [passphrase, setPassphrase] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!passphrase.trim()) return;
-
-    if ((mode === 'create' || mode === 'migrate') && passphrase.length < 4) {
-      setError('Passphrase must be at least 4 characters.');
-      return;
-    }
-
     setError(null);
+    setLoading(true);
 
-    const success = await keyManager.unlock(passphrase);
-    if (!success) {
-      setError('Incorrect passphrase, try again.');
-      return;
+    if (needsCreate) {
+      // Creating a passphrase for the first time
+      if (passphrase.length < 4) {
+        setError('Passphrase must be at least 4 characters.');
+        setLoading(false);
+        return;
+      }
+      if (passphrase !== confirm) {
+        setError('Passphrases do not match.');
+        setLoading(false);
+        return;
+      }
+      await keyManager.setPassphrase(passphrase);
+      onConfirmed();
+    } else {
+      // Verifying existing passphrase
+      const ok = await keyManager.verifyPassphrase(passphrase);
+      if (!ok) {
+        setError('Incorrect passphrase.');
+        setLoading(false);
+        return;
+      }
+      onConfirmed();
     }
 
-    if (mode === 'migrate') {
-      await keyManager.migratePlaintextKeys();
-    }
-
-    onUnlocked();
+    setLoading(false);
   };
-
-  const handleReset = async () => {
-    if (confirm('Are you sure you want to reset all keys? This will permanently delete your stored API keys. You cannot undo this action.')) {
-      await keyManager.resetAll();
-      setMode('create');
-      setPassphrase('');
-      setError(null);
-    }
-  };
-
-  if (mode === 'loading') {
-    return (
-      <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center">
-        <div className="animate-pulse text-purple-500">Loading secure workspace...</div>
-      </div>
-    );
-  }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#0A0A0A] border border-white/[0.08] rounded-2xl w-full max-w-md p-6 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-purple-500/10 blur-[120px] rounded-full" />
-        </div>
-        
-        <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center mb-4">
-            {mode === 'unlock' ? (
-              <Lock className="text-purple-400" size={24} />
-            ) : mode === 'migrate' ? (
-              <AlertTriangle className="text-amber-400" size={24} />
-            ) : (
-              <KeySquare className="text-purple-400" size={24} />
-            )}
-          </div>
-          
-          <h2 className="text-xl font-semibold text-white mb-2">
-            {mode === 'unlock' ? 'Workspace Locked' : mode === 'migrate' ? 'Security Upgrade' : 'Secure Workspace'}
-          </h2>
-          
-          <p className="text-[13px] text-neutral-400 mb-6">
-            {mode === 'unlock' 
-              ? 'Enter your passphrase to unlock your API keys for this session.'
-              : mode === 'migrate'
-              ? 'We are upgrading your API keys to use secure, encrypted local storage. Set a passphrase to encrypt your keys.'
-              : 'Set a passphrase to encrypt your API keys. You will need to enter this every time you open the app.'}
-          </p>
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
+        {/* Backdrop */}
+        <motion.div
+          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          onClick={onCancel}
+        />
 
-          <form onSubmit={handleSubmit} className="w-full space-y-4">
-            <div className="relative">
-              <input
-                type="password"
-                value={passphrase}
-                onChange={(e) => setPassphrase(e.target.value)}
-                placeholder={mode === 'unlock' ? 'Enter passphrase...' : 'Create passphrase...'}
-                className="w-full px-4 py-3 bg-white/[0.03] border border-white/[0.08] rounded-xl text-[14px] text-white placeholder:text-neutral-600 focus:outline-none focus:border-purple-500/50 transition-colors"
-                autoFocus
-              />
+        {/* Dialog */}
+        <motion.div
+          className="relative z-10 bg-[#0E0E0E] border border-white/[0.08] rounded-2xl w-full max-w-sm p-6 overflow-hidden"
+          initial={{ scale: 0.95, opacity: 0, y: 12 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.95, opacity: 0, y: 12 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+        >
+          {/* Glow */}
+          <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-40 h-40 bg-red-500/10 blur-[80px] rounded-full pointer-events-none" />
+
+          <div className="relative z-10">
+            {/* Icon */}
+            <div className="w-10 h-10 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-center mb-4">
+              {needsCreate ? (
+                <Lock size={18} className="text-red-400" />
+              ) : (
+                <ShieldAlert size={18} className="text-red-400" />
+              )}
             </div>
-            
-            {error && (
-              <p className="text-[13px] text-red-400 text-left">{error}</p>
-            )}
 
-            <button
-              type="submit"
-              disabled={!passphrase.trim()}
-              className="w-full py-3 bg-purple-600/90 hover:bg-purple-500 transition-colors text-white text-[14px] font-medium rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {mode === 'unlock' ? <Unlock size={16} /> : <Lock size={16} />}
-              {mode === 'unlock' ? 'Unlock Workspace' : 'Set Passphrase & Encrypt'}
-            </button>
-          </form>
+            {/* Title */}
+            <h2 className="text-[16px] font-semibold text-white mb-1">
+              {needsCreate ? 'Set a Removal Passphrase' : 'Confirm Removal'}
+            </h2>
+            <p className="text-[12px] text-neutral-500 mb-5">
+              {needsCreate
+                ? `Create a passphrase to protect key removal. You'll need it whenever you want to remove an API key.`
+                : `Enter your passphrase to remove the ${providerName} API key. This action cannot be undone.`}
+            </p>
 
-          {mode === 'unlock' && (
-            <button
-              onClick={handleReset}
-              className="mt-6 text-[12px] text-neutral-500 hover:text-red-400 transition-colors underline underline-offset-4"
-            >
-              Forgot passphrase? Reset all keys
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              {/* Passphrase input */}
+              <div className="relative">
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  value={passphrase}
+                  onChange={e => { setPassphrase(e.target.value); setError(null); }}
+                  placeholder={needsCreate ? 'Create passphrase...' : 'Enter passphrase...'}
+                  className="w-full px-3 py-2.5 pr-10 bg-white/[0.03] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-neutral-600 focus:outline-none focus:border-red-500/40 transition-colors"
+                  autoFocus
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+
+              {/* Confirm input (create mode only) */}
+              {needsCreate && (
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  value={confirm}
+                  onChange={e => { setConfirm(e.target.value); setError(null); }}
+                  placeholder="Confirm passphrase..."
+                  className="w-full px-3 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-neutral-600 focus:outline-none focus:border-red-500/40 transition-colors"
+                  autoComplete="new-password"
+                />
+              )}
+
+              {error && (
+                <p className="text-[12px] text-red-400">{error}</p>
+              )}
+
+              {/* Buttons */}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="flex-1 py-2 text-[12px] font-medium text-neutral-400 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.06] rounded-lg transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!passphrase.trim() || loading}
+                  className="flex-1 py-2 text-[12px] font-medium text-white bg-red-600/80 hover:bg-red-500/80 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {loading
+                    ? '...'
+                    : needsCreate
+                    ? 'Set & Remove'
+                    : 'Remove Key'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

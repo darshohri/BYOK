@@ -17,7 +17,7 @@ import { useAnalyticsStore } from '@/store/analytics';
 import { getProvider, PROVIDER_META } from '@/providers/registry';
 import { routePrompt } from '@/routing/smartRouter';
 import { generateChatTitle } from '@/lib/titleGenerator';
-import { keyStorage, ledgerStorage, keyManager } from '@/lib/storage';
+import { keyStorage, ledgerStorage } from '@/lib/storage';
 import type { ProviderId, RouterResult, ConversationMessage, Attachment } from '@/providers/types';
 
 export default function ChatPage() {
@@ -106,9 +106,6 @@ export default function ChatPage() {
       try {
         const apiKey = await keyStorage.getKey(currentProvider);
         if (!apiKey) {
-          if (!keyManager.isUnlocked() && await keyManager.hasAnyEncryptedKeys()) {
-            throw new Error(`Your API keys are securely locked. Please enter your passphrase in the API Keys page to unlock them.`);
-          }
           throw new Error(`No API key found for ${currentProvider}. Please reconnect in the API Keys page.`);
         }
 
@@ -279,16 +276,6 @@ export default function ChatPage() {
     setIsProcessing(true);
 
     try {
-      if (!keyManager.isUnlocked() && await keyManager.hasAnyEncryptedKeys()) {
-        addMessage(convId, {
-          role: 'assistant',
-          content: '⚠️ **Your API keys are securely locked.** Please go to the API Keys tab and enter your passphrase to unlock them.',
-        });
-        setIsProcessing(false);
-        setRoutingState('hidden');
-        return;
-      }
-
       if (mode === 'smart') {
         if (showRoutingAnimation) setRoutingState('analyzing');
         

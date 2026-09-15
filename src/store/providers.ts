@@ -9,7 +9,7 @@
 import { create } from 'zustand';
 import type { ProviderId, ProviderConnection, ModelInfo } from '@/providers/types';
 import { getProvider, getAllProviderIds } from '@/providers/registry';
-import { keyStorage, appStorage } from '@/lib/storage';
+import { keyStorage, appStorage, keyManager } from '@/lib/storage';
 
 interface ProviderState {
   /** Connection state per provider. */
@@ -82,6 +82,8 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   errors: createInitialFlags<string | null>(null),
 
   async initialize() {
+    await keyManager.migratePlaintextKeys();
+    
     const providerIds = getAllProviderIds();
     const connections = { ...get().connections };
 

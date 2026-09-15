@@ -108,179 +108,53 @@ function clearDB(): Promise<void> {
   });
 }
 
-let sessionKey: CryptoKey | null = null;
-let isUnlocked = false;
+// ── Passphrase Hash Storage ─────────────────────────────────
+// The passphrase is NOT used to encrypt/decrypt keys.
+// It is stored as a SHA-256 hash and is ONLY used to confirm
+// identity before a destructive action (removing a key).
+// Keys are stored as plain strings in IndexedDB — always accessible.
 
-const PBKDF2_ITERATIONS = 100000;
-const SALT_KEY = 'byok_crypto_salt';
+const PASSPHRASE_HASH_KEY = 'byok_passphrase_hash';
 
-function getOrGenerateSalt(): Uint8Array {
-  const stored = localStorage.getItem(SALT_KEY);
-  if (stored) {
-    return Uint8Array.from(atob(stored), c => c.charCodeAt(0));
-  }
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  localStorage.setItem(SALT_KEY, btoa(String.fromCharCode(...salt)));
-  return salt;
+async function hashPassphrase(passphrase: string): Promise<string> {
+  const enc = new TextEncoder();
+  const buffer = await crypto.subtle.digest('SHA-256', enc.encode(passphrase));
+  return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 export const keyManager = {
-  isUnlocked() { return isUnlocked; },
-  
-  async hasAnyEncryptedKeys(): Promise<boolean> {
-    const db = await openDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.count();
-      req.onsuccess = () => resolve(req.result > 0);
-      req.onerror = () => resolve(false);
-    });
+  /** Returns true if a passphrase has been set. */
+  hasPassphrase(): boolean {
+    return !!localStorage.getItem(PASSPHRASE_HASH_KEY);
   },
 
-  hasPlaintextKeys(): boolean {
-    const providers = ['gemini', 'groq', 'openrouter'];
-    return providers.some(p => !!localStorage.getItem(getKey(`${KEY_PREFIX}${p}`)));
+  /** Sets a new passphrase (stores hash only). */
+  async setPassphrase(passphrase: string): Promise<void> {
+    const hash = await hashPassphrase(passphrase);
+    localStorage.setItem(PASSPHRASE_HASH_KEY, hash);
   },
 
-  async unlock(passphrase: string): Promise<boolean> {
-    try {
-      const enc = new TextEncoder();
-      const keyMaterial = await crypto.subtle.importKey(
-        'raw',
-        enc.encode(passphrase),
-        { name: 'PBKDF2' },
-        false,
-        ['deriveBits', 'deriveKey']
-      );
-      
-      const salt = getOrGenerateSalt();
-      
-      sessionKey = await crypto.subtle.deriveKey(
-        {
-          name: 'PBKDF2',
-          salt: salt as any,
-          iterations: PBKDF2_ITERATIONS,
-          hash: 'SHA-256'
-        },
-        keyMaterial,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['encrypt', 'decrypt']
-      );
-
-      // Verify unlocking
-      const testVal = await getFromDB('__test__');
-      if (testVal) {
-        await this.decrypt(testVal);
-      } else {
-        const encTest = await this.encrypt('ok');
-        await setInDB('__test__', encTest);
-      }
-
-      isUnlocked = true;
-      return true;
-    } catch {
-      sessionKey = null;
-      isUnlocked = false;
-      return false;
-    }
+  /** Verifies a passphrase against the stored hash. Returns true if correct. */
+  async verifyPassphrase(passphrase: string): Promise<boolean> {
+    const stored = localStorage.getItem(PASSPHRASE_HASH_KEY);
+    if (!stored) return false;
+    const hash = await hashPassphrase(passphrase);
+    return hash === stored;
   },
 
-  async encrypt(data: string): Promise<{ iv: number[], cipher: number[] }> {
-    if (!sessionKey) throw new Error('Not unlocked');
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const enc = new TextEncoder();
-    const cipherBuffer = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv },
-      sessionKey,
-      enc.encode(data)
-    );
-    return {
-      iv: Array.from(iv),
-      cipher: Array.from(new Uint8Array(cipherBuffer))
-    };
-  },
-
-  async decrypt(data: { iv: number[], cipher: number[] }): Promise<string> {
-    if (!sessionKey) throw new Error('Not unlocked');
-    const iv = new Uint8Array(data.iv);
-    const cipherBuffer = new Uint8Array(data.cipher);
-    const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv },
-      sessionKey,
-      cipherBuffer
-    );
-    const dec = new TextDecoder();
-    return dec.decode(decrypted);
-  },
-  
-  async changePassphrase(currentPass: string, newPass: string): Promise<boolean> {
-    let oldKey: CryptoKey;
-    try {
-      const enc = new TextEncoder();
-      const keyMaterial = await crypto.subtle.importKey(
-        'raw', enc.encode(currentPass), { name: 'PBKDF2' }, false, ['deriveKey']
-      );
-      const salt = getOrGenerateSalt();
-      oldKey = await crypto.subtle.deriveKey(
-        { name: 'PBKDF2', salt: salt as any, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
-        keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
-      );
-      const testVal = await getFromDB('__test__');
-      if (testVal) {
-        await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(testVal.iv) }, oldKey, new Uint8Array(testVal.cipher));
-      }
-    } catch {
-      return false; // Incorrect current passphrase
-    }
-    
-    // Temporarily set sessionKey so we can decrypt existing keys
-    sessionKey = oldKey;
-    isUnlocked = true;
-
-    const providers = ['gemini', 'groq', 'openrouter'];
-    const plainKeys: Record<string, string> = {};
-    for (const p of providers) {
-      try {
-        const dbKey = getKey(`${KEY_PREFIX}${p}`);
-        const encrypted = await getFromDB(dbKey);
-        if (encrypted) plainKeys[p] = await this.decrypt(encrypted);
-      } catch { }
-    }
-
-    const newSalt = crypto.getRandomValues(new Uint8Array(16));
-    localStorage.setItem(SALT_KEY, btoa(String.fromCharCode(...newSalt)));
-    
-    const enc = new TextEncoder();
-    const newKeyMaterial = await crypto.subtle.importKey(
-      'raw', enc.encode(newPass), { name: 'PBKDF2' }, false, ['deriveKey']
-    );
-    sessionKey = await crypto.subtle.deriveKey(
-      { name: 'PBKDF2', salt: newSalt as any, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
-      newKeyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
-    );
-
-    const encTest = await this.encrypt('ok');
-    await setInDB('__test__', encTest);
-
-    for (const p in plainKeys) {
-      const dbKey = getKey(`${KEY_PREFIX}${p}`);
-      const encData = await this.encrypt(plainKeys[p]);
-      await setInDB(dbKey, encData);
-    }
-    return true;
-  },
-
+  /** Wipes all stored keys and the passphrase hash. */
   async resetAll(): Promise<void> {
     await clearDB();
-    localStorage.removeItem(SALT_KEY);
-    sessionKey = null;
-    isUnlocked = false;
+    localStorage.removeItem(PASSPHRASE_HASH_KEY);
   },
 
+  // ── Legacy compat stubs (safe no-ops, kept so other files compile) ──
+  isUnlocked(): boolean { return true; },
+  async hasAnyEncryptedKeys(): Promise<boolean> { return false; },
+  hasPlaintextKeys(): boolean { return false; },
+  
+  /** Migrates old plaintext keys from localStorage to IndexedDB if any exist. */
   async migratePlaintextKeys(): Promise<void> {
-    if (!isUnlocked) return;
     const providers = ['gemini', 'groq', 'openrouter'];
     for (const p of providers) {
       const lsKey = getKey(`${KEY_PREFIX}${p}`);
@@ -290,33 +164,38 @@ export const keyManager = {
         localStorage.removeItem(lsKey);
       }
     }
-  }
+  },
 };
 
 /**
- * API key storage — async abstraction using WebCrypto & IndexedDB
+ * API key storage — plain-string storage in IndexedDB.
+ * Keys are NEVER stored in localStorage, URLs, or chat history.
+ * No encryption is applied — the browser's same-origin IndexedDB
+ * provides sufficient isolation for a BYOK client-side app.
  */
 export const keyStorage = {
-  /** Retrieve the stored key for a provider. Returns null if not set or locked. */
+  /** Retrieve the stored API key for a provider. Always accessible — no passphrase required. */
   async getKey(providerId: string): Promise<string | null> {
-    if (!isUnlocked) return null;
     try {
       const dbKey = getKey(`${KEY_PREFIX}${providerId}`);
-      const encrypted = await getFromDB(dbKey);
-      if (!encrypted) return null;
-      return await keyManager.decrypt(encrypted);
+      const value = await getFromDB(dbKey);
+      if (!value) return null;
+      // Handle both legacy encrypted format {iv, cipher} and new plain string
+      if (typeof value === 'string') return value;
+      // Legacy: if it's an encrypted object, we can't decrypt it without the session key.
+      // Return null — the user will need to re-enter the key.
+      if (typeof value === 'object' && 'iv' in value && 'cipher' in value) return null;
+      return null;
     } catch {
       return null;
     }
   },
 
-  /** Store an API key for a provider securely. */
+  /** Store an API key for a provider as a plain string in IndexedDB. */
   async setKey(providerId: string, key: string): Promise<void> {
-    if (!isUnlocked) return;
     try {
       const dbKey = getKey(`${KEY_PREFIX}${providerId}`);
-      const encrypted = await keyManager.encrypt(key);
-      await setInDB(dbKey, encrypted);
+      await setInDB(dbKey, key);
       localStorage.setItem(`_mask_${providerId}`, this.maskKey(key));
     } catch {
       console.error(`[BYOK] Failed to store key for ${providerId}`);
@@ -333,7 +212,7 @@ export const keyStorage = {
     }
   },
 
-  /** Check if a key exists for a provider. */
+  /** Check if a key exists for a provider (regardless of its format). */
   async hasKey(providerId: string): Promise<boolean> {
     try {
       const val = await getFromDB(getKey(`${KEY_PREFIX}${providerId}`));
@@ -343,10 +222,7 @@ export const keyStorage = {
     }
   },
 
-  /**
-   * Return a masked representation of a key.
-   * Shows only the last 4 characters.
-   */
+  /** Return a masked representation of a key (shows first 4 + last 4 chars). */
   maskKey(key: string): string {
     if (!key || key.length <= 8) return '••••••••';
     const first = key.slice(0, 4);

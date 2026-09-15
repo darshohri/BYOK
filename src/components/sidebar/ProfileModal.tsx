@@ -129,15 +129,23 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
     setPassphraseSaving(true);
     try {
-      const success = await keyManager.changePassphrase(currentPassphrase, newPassphrase);
-      if (!success) {
-        setPassphraseMsg({ text: 'Incorrect current passphrase.', type: 'error' });
-        return;
+      const needsCreate = !keyManager.hasPassphrase();
+      
+      if (!needsCreate) {
+        const ok = await keyManager.verifyPassphrase(currentPassphrase);
+        if (!ok) {
+          setPassphraseMsg({ text: 'Incorrect current passphrase.', type: 'error' });
+          setPassphraseSaving(false);
+          return;
+        }
       }
+
+      await keyManager.setPassphrase(newPassphrase);
+      
       setCurrentPassphrase('');
       setNewPassphrase('');
       setConfirmPassphrase('');
-      setPassphraseMsg({ text: 'Passphrase updated successfully.', type: 'success' });
+      setPassphraseMsg({ text: needsCreate ? 'Passphrase created successfully.' : 'Passphrase updated successfully.', type: 'success' });
       setTimeout(() => setPassphraseMsg(null), 3000);
     } catch (err: any) {
       setPassphraseMsg({ text: err.message || 'An error occurred', type: 'error' });
@@ -346,18 +354,26 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 {activeTab === 'passphrase' && (
                   <div className="space-y-6">
                     <form onSubmit={handleSavePassphrase} className="space-y-3">
-                      <div>
-                        <label className="block text-[12px] font-medium text-neutral-400 mb-1">
-                          Current Passphrase
-                        </label>
-                        <input
-                          type="password"
-                          value={currentPassphrase}
-                          onChange={(e) => setCurrentPassphrase(e.target.value)}
-                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-500/50 transition-colors"
-                          required
-                        />
-                      </div>
+                      {!keyManager.hasPassphrase() ? (
+                        <div className="mb-4">
+                          <p className="text-[13px] text-neutral-400">
+                            You haven't set a removal passphrase yet. Set one below to protect your API keys from being removed.
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-[12px] font-medium text-neutral-400 mb-1">
+                            Current Passphrase
+                          </label>
+                          <input
+                            type="password"
+                            value={currentPassphrase}
+                            onChange={(e) => setCurrentPassphrase(e.target.value)}
+                            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-purple-500/50 transition-colors"
+                            required
+                          />
+                        </div>
+                      )}
                       <div>
                         <label className="block text-[12px] font-medium text-neutral-400 mb-1">
                           New Passphrase
@@ -400,7 +416,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                           className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50"
                         >
                           {passphraseSaving && <Loader2 size={14} className="animate-spin" />}
-                          Update Passphrase
+                          {!keyManager.hasPassphrase() ? 'Set Passphrase' : 'Update Passphrase'}
                         </button>
                       </div>
                     </form>
