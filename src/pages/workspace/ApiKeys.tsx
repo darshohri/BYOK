@@ -187,7 +187,9 @@ function ProviderKeyCard({ providerId }: { providerId: ProviderId }) {
                 onKeyDown={e => e.key === 'Enter' && handleConnect()}
                 placeholder={`Enter your ${meta.name} API key...`}
                 className="w-full px-3 py-2.5 pr-10 bg-white/[0.03] border border-white/[0.08] rounded-lg text-[13px] text-white placeholder:text-neutral-600 focus:outline-none focus:border-purple-500/40 transition-colors"
-                autoComplete="new-password"
+                autoComplete="off"
+                data-1p-ignore="true"
+                data-bwignore="true"
               />
               <button
                 onClick={() => setShowKey(!showKey)}
