@@ -163,7 +163,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
       
       let defaultModelForProvider = models[0]?.id || null;
       if (id === 'gemini') {
-        const preferred = models.find(m => m.id.includes('3.6-flash'));
+        const preferred = models.find(m => m.id.includes('3.8-flash'));
         if (preferred) defaultModelForProvider = preferred.id;
       } else if (id === 'groq') {
         const preferred = models.find(m => m.id === 'openai/gpt-oss-120b');

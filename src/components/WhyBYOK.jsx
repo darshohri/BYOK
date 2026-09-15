@@ -15,7 +15,7 @@ const WhyBYOK = () => {
   const byokAdvantage = [
     { text: 'No monthly subscription — pay only your exact provider usage' },
     { text: 'Use your own API keys directly with sovereign governance' },
-    { text: 'Support for Gemini 3.6 Flash, Groq LPU, and OpenRouter' },
+    { text: 'Support for Gemini 3.8 Flash, Groq LPU, and OpenRouter' },
     { text: 'Unified AI workspace to intelligently route prompts to the best model' },
     { text: 'Transparent usage and latency tracking in real time' },
     { text: 'Privacy-first design with local-first key vault encryption' }

@@ -25,8 +25,8 @@ const DEFAULT_GEMINI_MODELS: ModelInfo[] = [
     description: 'Next-generation fast and efficient model',
   },
   {
-    id: 'gemini-3.6-flash',
-    name: 'Gemini 3.6 Flash',
+    id: 'gemini-3.8-flash',
+    name: 'Gemini 3.8 Flash',
     provider: 'gemini',
     capabilities: ['text', 'vision', 'reasoning', 'tools', 'structuredOutput', 'longContext'],
     contextLength: 2097152,
