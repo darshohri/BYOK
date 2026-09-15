@@ -93,20 +93,28 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
 
       if (hasKey) {
         let key = await keyStorage.getKey(id);
-        let masked: string | null = null;
+        
         if (key) {
-          masked = keyStorage.maskKey(key);
+          const masked = keyStorage.maskKey(key);
           localStorage.setItem(`_mask_${id}`, masked);
+          
+          connections[id] = {
+            connected: true,
+            selectedModel: savedModel,
+            availableModels: [],
+            maskedKey: masked,
+          };
         } else {
-          masked = localStorage.getItem(`_mask_${id}`);
+          // Key exists in DB but couldn't be read (legacy encrypted format).
+          // We can't decrypt it anymore, so we purge it.
+          await keyStorage.removeKey(id);
+          connections[id] = {
+            connected: false,
+            selectedModel: null,
+            availableModels: [],
+            maskedKey: null,
+          };
         }
-        if (!masked) masked = '••••••••••••••••'; // fallback
-        connections[id] = {
-          connected: true,
-          selectedModel: savedModel,
-          availableModels: [], // Will be populated on first use or refresh
-          maskedKey: masked,
-        };
       }
     }
 
