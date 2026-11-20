@@ -70,6 +70,15 @@ src/
 
 5. Open your browser and navigate to `http://localhost:5173`.
 
+## 📜 Available Scripts
+
+| Command | Description |
+| ------- | ----------- |
+| `npm run dev` | Start the Vite development server with hot reload. |
+| `npm run build` | Create an optimized production build in `dist/`. |
+| `npm run preview` | Serve the production build locally to verify it before deploying. |
+| `npm run lint` | Lint the codebase with oxlint. |
+
 ## 📦 Build for Production
 
 To build the application for production, run:
