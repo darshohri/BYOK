@@ -4,6 +4,7 @@ import heic2any from 'heic2any';
 // 5MB limit for text files to accommodate larger context windows
 const MAX_TEXT_FILE_SIZE = 5 * 1024 * 1024; 
 
+/** Thrown when a file cannot be turned into an attachment, e.g. a failed HEIC conversion. */
 export class AttachmentError extends Error {
   constructor(message: string) {
     super(message);
